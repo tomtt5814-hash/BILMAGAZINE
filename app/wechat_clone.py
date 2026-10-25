@@ -180,6 +180,24 @@ def _translate(texts: list[str]) -> list[str]:
     return [r or t for r, t in zip(result, texts)]
 
 
+def _strip_inline_font(el) -> None:
+    """去掉微信带来的行内字号/行高，否则它会压过杂志的字号变量。"""
+    style = el.get("style")
+    if not style:
+        return
+    kept = []
+    for decl in style.split(";"):
+        name = decl.split(":", 1)[0].strip().lower()
+        if name in ("font-size", "line-height"):
+            continue
+        if decl.strip():
+            kept.append(decl.strip())
+    if kept:
+        el.set("style", "; ".join(kept) + ";")
+    else:
+        el.attrib.pop("style", None)
+
+
 def build_content(article: dict, ctx: dict[str, str] | None = None) -> str:
     """只产出正文 HTML（内联进杂志用），不含外壳与标题。
 
@@ -225,6 +243,10 @@ def build_content(article: dict, ctx: dict[str, str] | None = None) -> str:
             img.set("src", img.get("data-src"))
         for attr in ("data-src", "data-original", "srcset"):
             img.attrib.pop(attr, None)
+
+    for el in root.iter():
+        if isinstance(el.tag, str):
+            _strip_inline_font(el)
 
     return "".join(
         lxml_html.tostring(ch, encoding="unicode") for ch in root if isinstance(ch.tag, str)
