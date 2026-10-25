@@ -15,13 +15,16 @@
 | 22:30 定时 + 补跑 | ✅ 可用 |
 | `processed.json` 去重（原子写 + 损坏自愈） | ✅ 可用 |
 | 单视频元信息 / 封面下载 | ✅ 可用（免登录） |
+| 本地转写（faster-whisper，CPU int8） | ✅ 可用，实测 **7 倍实时** |
+| 中文摘要 + 六级改写（DeepSeek） | ✅ 可用 |
 | 杂志渲染（自包含 HTML，封面内联） | ✅ 可用 |
-| 中文摘要 + 六级改写 | ⚠️ 需要 `LLM_API_KEY`，未配置时走**演示样例** |
+| V2 三层词汇（CET-6 / 正常 / 超纲）+ 两个按钮 | ✅ 可用 |
 | B 站「最新一期」列表 | ⚠️ 需要 `BILI_COOKIE`，否则被风控（HTTP 412） |
-| whisper.cpp 本地转写 | ⚠️ 需要手动放可执行文件与模型（官方 release 无 Windows 预编译包） |
+| whisper.cpp（Vulkan） | ⚠️ 官方无 Windows 预编译包，暂用 faster-whisper CPU 顶替 |
 
-**当前是演示模式**：`data/demo/llm_cache.json` 里是我按需求书 F4 标准手写的 3 篇样例文案，
-配合 3 个真实 B 站视频（真实标题/UP 主/封面）。界面上有明确标注，不会冒充真实模型输出。
+真实链路已验证：`BV1GDHA6HEHu`（章北海official，9 分钟）→ 音频 6.6MB → small 模型转写 86 秒 →
+DeepSeek 摘要与改写 → 带三层词汇标注的杂志。CPU 转写速度 7 倍实时，四个 UP 主（约 84 分钟音频）
+合计约 12 分钟，落在 22:30–23:35 的窗口内。
 
 ## 快速开始
 
@@ -51,9 +54,28 @@ LLM_API_KEY=sk-xxxx
 # B 站登录态：浏览器登录后复制整条 Cookie（至少含 SESSDATA）
 # 没有它，「自动检查最新一期」会被风控挡住，只能手动贴 BV 号
 BILI_COOKIE=SESSDATA=xxx; bili_jct=xxx; buvid3=xxx
+
+# 转写模型：可以是模型名（走 HF 下载），也可以是本地目录
+FASTER_MODEL=tools/fw-small
 ```
 
 其余项（转写引擎、whisper 路径、调度时间）见 `.env.example` 注释。
+
+### 词表与模型准备
+
+```bash
+python scripts/fetch_vocab.py --proxy http://127.0.0.1:7897   # 七个词表 -> data/vocab/
+```
+
+faster-whisper 模型建议直接下到本地目录（避免 HF 下载卡住）：
+
+```bash
+mkdir -p tools/fw-small
+for f in config.json tokenizer.json vocabulary.txt; do
+  curl -L -o tools/fw-small/$f https://hf-mirror.com/Systran/faster-whisper-small/resolve/main/$f
+done
+curl -L -o tools/fw-small/model.bin https://hf-mirror.com/Systran/faster-whisper-small/resolve/main/model.bin
+```
 
 ## 目录
 
@@ -76,6 +98,20 @@ scripts/          seed_demo.py（演示数据）、setup_whisper.sh（whisper �
 data/             运行时数据（已 gitignore）
 ```
 
+## V2 词汇层怎么工作
+
+三层判定（`app/vocab.py`）：
+
+1. 命中 CET-6 词表（3991 词）→ **蓝色**，可点击，点了原地出中文；
+2. 命中基础词表（初中 3223 + 高中 6008 + 四级 7508）→ **常规字重**，不标注；
+3. 其余且词长 ≥ 6 → **细体（超纲）**，中文来自考研/托福/SAT 三张补充表。
+
+查不到的（如 `thermostat`、`chitosan`）交给 DeepSeek 按语境补一个简短中文，
+结果缓存到 `data/vocab/glossary.json`，同一次请求最多补 40 个词。
+
+两个按钮独立：`CET-6 释义`批量展开蓝词，`超纲词释义`批量展开超纲词（默认关闭）。
+缩写（`you're`）、所有格（`tesla's`）、句中首字母大写的专有名词不参与分级。
+
 ## 几个设计取舍
 
 - **只按 BV 去重，不按日期**：跨天更新、一天多期都不会漏；失败不写 `processed.json`，下次自动重试。
@@ -86,9 +122,12 @@ data/             运行时数据（已 gitignore）
 
 ## 已知问题
 
-- 首字下沉用的是「上标式」而非浮动下沉：浮动版本在 Chromium 下会与相邻段落产生错位。
-- 控制台「本次运行」只显示最近一次汇总，完整明细在 `data/runs/*.json`。
-- whisper.cpp 需要手动准备：`bash scripts/setup_whisper.sh` 只覆盖模型下载，Windows 二进制要自行编译或找第三方构建。
+- 首字下沉用「上标式」而非浮动下沉：浮动版在 Chromium 下会和相邻段落错位。
+- 词义脱离语境：`can → 装罐头`、`dry → 干巴巴的` 这类熟词僻义会误标，靠 LLM 补词救不了。
+- 专有名词判定是启发式（句中大写 + 不在词典），个别缩写仍可能被当成超纲词。
+- whisper.cpp 的 Vulkan 路线不成立：官方 release 没有 Windows 二进制，A 卡在 Windows 上
+  只能用 faster-whisper 的 CPU 路径。实测 7 倍实时，够用。
+- 转写用的 base 模型中文质量差（「生育率」→「预论」），必须用 small 及以上。
 
 ## 下一步（v2）
 

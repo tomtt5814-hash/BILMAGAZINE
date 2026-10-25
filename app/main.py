@@ -114,8 +114,8 @@ def delete_subscription(uid: str):
 
 @app.post("/run")
 def trigger_run(bv_input: str = Form("")):
-    bv = source.parse_bvid(bv_input) if bv_input.strip() else None
-    run = runner.start_run(trigger="manual", bvids=[bv] if bv else None)
+    bvs = [b for b in (source.parse_bvid(x) for x in bv_input.replace("，", ",").split(",")) if b]
+    run = runner.start_run(trigger="manual", bvids=bvs or None)
     return RedirectResponse(f"/?run={run['id']}", status_code=303)
 
 

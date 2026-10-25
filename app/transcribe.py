@@ -66,17 +66,36 @@ def faster_available() -> bool:
         return False
 
 
-def transcribe_faster(audio: Path) -> dict:
-    """faster-whisper（CPU int8）。A 卡没有 ROCm 支持，这里就是纯 CPU 路线。"""
-    import os
+def _load_audio_np(path: Path):
+    """ffmpeg 解码成 16k 单声道 float32 数组，绕开 PyAV 版本不兼容。"""
+    import tempfile
+    import wave
 
-    os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+    import numpy as np
+
+    tmp = Path(tempfile.gettempdir()) / f"asr-{int(time.time() * 1000)}.wav"
+    proc = subprocess.run(
+        [_ffmpeg(), "-y", "-loglevel", "error", "-i", str(path),
+         "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", str(tmp)],
+        capture_output=True, text=True, timeout=1800,
+    )
+    if proc.returncode != 0 or not tmp.exists():
+        raise TranscribeUnavailable(f"ffmpeg 解码失败：{proc.stderr[-200:]}")
+    with wave.open(str(tmp), "rb") as w:
+        raw = w.readframes(w.getnframes())
+    tmp.unlink(missing_ok=True)
+    return np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
+
+
+def transcribe_faster(audio: Path) -> dict:
+    """faster-whisper（CPU int8）。A 卡在 Windows 上没有可用的 ROCm 路径，这里就是纯 CPU。"""
     from faster_whisper import WhisperModel
 
     t0 = time.time()
-    model = WhisperModel(config.FASTER_MODEL, device="cpu", compute_type="int8")
+    model = WhisperModel(config.FASTER_MODEL, device="cpu", compute_type="int8", cpu_threads=8)
     segments, info = model.transcribe(
-        str(audio), language="zh", vad_filter=True, beam_size=5,
+        _load_audio_np(audio), language="zh", beam_size=1, vad_filter=False,
+        condition_on_previous_text=False,
         initial_prompt="以下是普通话的句子，内容为知识类视频讲解。",
     )
     parts = [seg.text.strip() for seg in segments if seg.text.strip()]
