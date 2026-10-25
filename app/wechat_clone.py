@@ -180,7 +180,8 @@ def _translate(texts: list[str]) -> list[str]:
     return [r or t for r, t in zip(result, texts)]
 
 
-def build_clone(article: dict) -> str:
+def build_content(article: dict) -> str:
+    """只产出正文 HTML（内联进杂志用），不含外壳与标题。"""
     raw = article.get("html") or ""
     if not raw:
         raise ValueError("缺少原始 HTML")
@@ -203,7 +204,7 @@ def build_clone(article: dict) -> str:
         for ch in list(el):
             if ch not in keep:
                 el.remove(ch)
-        # 英文正文套上三层词汇标注（注意保留节点间的空白 tail，否则单词会粘在一起）
+        # 英文正文套上三层词汇标注（保留节点间的空白 tail，否则单词会粘在一起）
         frag = lxml_html.fragment_fromstring(vocab.annotate(en), create_parent="div")
         el.text = frag.text
         for ch in list(frag):
@@ -219,9 +220,13 @@ def build_clone(article: dict) -> str:
         for attr in ("data-src", "data-original", "srcset"):
             img.attrib.pop(attr, None)
 
-    content = "".join(
+    return "".join(
         lxml_html.tostring(ch, encoding="unicode") for ch in root if isinstance(ch.tag, str)
     )
+
+
+def build_clone(article: dict) -> str:
+    content = build_content(article)
     published = article.get("published")
     date = ""
     if published:

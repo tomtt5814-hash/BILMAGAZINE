@@ -380,15 +380,17 @@ def _process_wechat(run: dict, target: dict) -> dict | None:
 
     # 生成「翻译克隆页」：保留原文排版与图片，正文换成英文，中文藏在下面
     clone_url = ""
+    clone_html = ""
     try:
         from . import wechat_clone
 
         _set(item, run, state="rewrite", detail="生成翻译页（保留原文排版）")
-        clone_html = wechat_clone.build_clone(art)
-        wechat_clone.save_clone(key, clone_html)
+        clone_html = wechat_clone.build_content(art)
+        wechat_clone.save_clone(key, wechat_clone.build_clone(art))
         clone_url = f"/wx/{key.replace(':', '_')}"
     except Exception:
         clone_url = ""
+        clone_html = ""
 
     _set(item, run, state="done", detail="完成")
     return {
@@ -404,6 +406,7 @@ def _process_wechat(run: dict, target: dict) -> dict | None:
         "url": clone_url or art["url"],
         "orig_url": art["url"],
         "full_page": clone_url,
+        "clone_html": clone_html,
         "caption": f"{art.get('account','')}《{art['title']}》",
         "demo": rewritten.get("note", ""),
     }

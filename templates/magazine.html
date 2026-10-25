@@ -153,6 +153,15 @@
   }
   .fullpage{margin:22px 0 6px;border:1px solid var(--line);background:#fff}
   .fullpage iframe{width:100%;height:78vh;min-height:520px;border:0;display:block}
+  /* 公众号原文内联：与杂志共用一套版心和滚动条 */
+  .wx-inline{margin:22px 0 8px;max-width:66ch}
+  .wx-inline p,.wx-inline section{margin:0 0 18px;max-width:66ch}
+  .wx-inline img{max-width:100%;height:auto;display:block;margin:16px auto;border-radius:3px}
+  .wx-inline .zh-orig{display:none}
+  body.show-zh .wx-inline .zh-orig{
+    display:block;color:#8f8a80;font-size:14.5px;line-height:1.8;
+    border-left:2px solid #e6e0d4;padding-left:10px;margin-top:6px;
+  }
   .story__links{
     margin-top:28px;font-family:ui-sans-serif,-apple-system,"Segoe UI",sans-serif;
     font-size:12.5px;letter-spacing:.04em;
@@ -228,10 +237,8 @@
         </figure>
         {% endif %}
         <div class="story__text">
-          {% if a.full_page %}
-          <div class="fullpage">
-            <iframe src="{{ a.full_page }}?embed=1" loading="lazy" title="{{ a.title }}"></iframe>
-          </div>
+          {% if a.clone_html %}
+          <div class="wx-inline">{{ a.clone_html|safe }}</div>
           {% else %}
           {% for p in a.paragraphs %}
             {% if loop.first and a.dropcap %}

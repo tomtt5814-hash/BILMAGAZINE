@@ -111,6 +111,7 @@ def render_magazine(day: str, issue: int, headline: str, lede: str, articles: li
                 "url": a.get("url", ""),
                 "orig_url": a.get("orig_url", ""),
                 "full_page": a.get("full_page", ""),
+                "clone_html": a.get("clone_html", ""),
                 "rpid": a.get("rpid") or "",
                 "icon_svg": ICONS[ICON_ORDER[i % len(ICON_ORDER)]],
             }
@@ -153,6 +154,7 @@ def render_magazine(day: str, issue: int, headline: str, lede: str, articles: li
                 "url": a.get("url", ""),
                 "orig_url": a.get("orig_url", ""),
                 "full_page": a.get("full_page", ""),
+                "clone_html": a.get("clone_html", ""),
                 "rpid": a.get("rpid") or "",
                 "caption": a.get("caption", "视频封面"),
             }
