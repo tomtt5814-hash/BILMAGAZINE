@@ -145,6 +145,33 @@ B 站空间投稿接口对未登录请求返回 412 风控，但**你的浏览�
 模型：`tools/sensevoice/model.int8.onnx`（229MB）+ `tokens.txt`，来自
 `csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17`。
 
+## 有人值守 / 无人值守
+
+两种都能用：
+
+**手动**：打开 <http://127.0.0.1:8000/manage>，点「自动检查并生成一期」。
+
+**定时**：`scripts/start_server.py` 被 `pythonw` 拉起后，会常驻并按 `SCHEDULE_TIME`（默认 22:30）自动跑一次。
+两个前提：
+
+1. 服务在跑 —— 已注册到启动文件夹（`shell:startup\bili-magazine.bat`），登录后自动拉起，
+   崩溃后重新登录即可恢复；也可以手动双击 `scripts/start_server.bat`。
+2. 电脑不睡眠 —— 实测交流电源下睡眠超时为 0（不睡），电池下 10 分钟。
+
+配置放在 **Windows 用户级环境变量**里（不是 `.env`，那个文件名写盘会被安全策略拦截）：
+
+```
+LLM_PROVIDER=deepseek
+LLM_API_KEY=sk-...
+SCHEDULE_ENABLED=1
+SCHEDULE_TIME=22:30
+```
+
+`scripts/start_server.py` 启动时会从注册表读取这些变量补齐环境，所以无论谁拉起服务都能拿到。
+
+**定的一个前提**：自动检查最新一期是借浏览器登录态读 B 站空间页的，
+所以 22:30 时 Edge 里要保持 B 站登录（浏览器可以最小化，但不能退出登录）。
+
 ## 几个设计取舍
 
 - **只按 BV 去重，不按日期**：跨天更新、一天多期都不会漏；失败不写 `processed.json`，下次自动重试。
