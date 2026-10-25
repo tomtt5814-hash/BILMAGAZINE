@@ -51,6 +51,7 @@ body.show-adv .w-adv .zh{display:inline}
  border:1px solid #e2ddd2;box-shadow:0 2px 10px rgba(0,0,0,.08)}
 .tbtn{font:12px ui-sans-serif,sans-serif;padding:5px 10px;border:1px solid #ddd4c4;background:#fff;color:#6b6459;cursor:pointer}
 .tbtn.on{background:#15140f;color:#f6f2ea;border-color:#15140f}
+body.embed .tctl{display:none}
 </style></head>
 <body><div class="wrap">
 <h1 class="art-title">%(title)s</h1>
@@ -63,14 +64,26 @@ body.show-adv .w-adv .zh{display:inline}
   <button class="tbtn" data-toggle="adv">超纲词释义</button>
 </div>
 <script>
-document.querySelectorAll('.tbtn').forEach(function(btn){
-  btn.addEventListener('click', function(){
-    var key = this.getAttribute('data-toggle');
-    var on = this.classList.toggle('on');
-    document.body.classList.toggle('show-' + key, on);
-    if (key === 'zh') this.textContent = on ? '隐藏中文原文' : '显示中文原文';
+(function(){
+  var embedded = location.search.indexOf('embed=1') >= 0;
+  if (embedded) document.body.classList.add('embed');
+
+  document.querySelectorAll('.tbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var key = this.getAttribute('data-toggle');
+      var on = this.classList.toggle('on');
+      document.body.classList.toggle('show-' + key, on);
+      if (key === 'zh') this.textContent = on ? '隐藏中文原文' : '显示中文原文';
+    });
   });
-});
+
+  // 被嵌进杂志时，由外层按钮统一驱动（同源直接改 DOM，跨源走 postMessage）
+  window.addEventListener('message', function(e){
+    var d = e.data || {};
+    if (d.type !== 'toggle' || !d.key) return;
+    document.body.classList.toggle('show-' + d.key, !!d.on);
+  });
+})();
 </script>
 </body></html>
 """

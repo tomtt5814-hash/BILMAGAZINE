@@ -230,7 +230,7 @@
         <div class="story__text">
           {% if a.full_page %}
           <div class="fullpage">
-            <iframe src="{{ a.full_page }}" loading="lazy" title="{{ a.title }}"></iframe>
+            <iframe src="{{ a.full_page }}?embed=1" loading="lazy" title="{{ a.title }}"></iframe>
           </div>
           {% else %}
           {% for p in a.paragraphs %}
@@ -269,14 +269,28 @@
 
 <script>
 (function(){
+  function pushToFrames(key, on){
+    document.querySelectorAll('.fullpage iframe').forEach(function(fr){
+      try {
+        if (fr.contentDocument && fr.contentDocument.body) {
+          fr.contentDocument.body.classList.toggle('show-' + key, on);
+          return;
+        }
+      } catch (e) { /* 跨源时退化为 postMessage */ }
+      try { fr.contentWindow.postMessage({type:'toggle', key:key, on:on}, '*'); } catch (e) {}
+    });
+  }
+
   document.querySelectorAll('.vbtn').forEach(function(btn){
     btn.addEventListener('click', function(){
       var key = btn.getAttribute('data-toggle');
       var on = btn.classList.toggle('on');
       document.body.classList.toggle('show-' + key, on);
       btn.setAttribute('aria-pressed', String(on));
+      pushToFrames(key, on);
     });
   });
+
   document.addEventListener('click', function(e){
     var w = e.target.closest ? e.target.closest('.w-cet6') : null;
     if (w && !w.classList.contains('on')) { w.classList.add('on'); }
