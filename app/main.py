@@ -93,6 +93,15 @@ def _next_run() -> str:
 
 
 @app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={"request": request, "mags": store.list_magazines()},
+    )
+
+
+@app.get("/manage", response_class=HTMLResponse)
 def dashboard(request: Request):
     return templates.TemplateResponse(
         request=request,
@@ -106,6 +115,16 @@ def dashboard(request: Request):
             "processed_count": len(store.load_processed()),
         },
     )
+
+
+@app.get("/magazine-thumb/{day}")
+def magazine_thumb(day: str):
+    from fastapi.responses import FileResponse
+
+    path = config.MAGAZINE_DIR / f"thumb-{day}.jpg"
+    if not path.exists():
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return FileResponse(path, media_type="image/jpeg")
 
 
 @app.post("/subscriptions")

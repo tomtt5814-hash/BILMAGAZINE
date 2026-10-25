@@ -118,6 +118,20 @@ def render_magazine(day: str, issue: int, headline: str, lede: str, articles: li
         "titles": [a["title"] for a in prepared],
         "bvids": [a["bvid"] for a in prepared],
         "vocab": [a.get("vocab_stats") for a in prepared],
+        "articles": [
+            {
+                "bvid": a.get("bvid", ""),
+                "title": a.get("title", ""),
+                "body": a.get("body", ""),
+                "author": a.get("author", ""),
+                "pubdate_human": a.get("pubdate_human", ""),
+                "cover_path": str(a.get("cover_path") or ""),
+                "url": a.get("url", ""),
+                "rpid": a.get("rpid") or "",
+                "caption": a.get("caption", "视频封面"),
+            }
+            for a in articles
+        ],
     }
     return html, meta
 

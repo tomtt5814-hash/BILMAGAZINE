@@ -163,14 +163,19 @@ def list_magazines() -> list[dict]:
         if day == "demo":
             continue
         meta = read_json(f.with_suffix(".json"), {})
+        thumb = config.MAGAZINE_DIR / f"thumb-{day}.jpg"
         out.append(
             {
                 "day": day,
                 "file": f.name,
                 "title": meta.get("headline", f"每日杂志 {day}"),
+                "lede": meta.get("lede", ""),
+                "issue": meta.get("issue", 0),
                 "count": meta.get("count", 0),
+                "bloggers": meta.get("bloggers", []),
                 "size_kb": round(f.stat().st_size / 1024),
                 "mtime": int(f.stat().st_mtime),
+                "thumb": thumb.name if thumb.exists() else "",
             }
         )
     return out

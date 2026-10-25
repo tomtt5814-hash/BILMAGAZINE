@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>博主日报杂志</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div class="shell">
+  <header class="top nav-top">
+    <h1>博主日报杂志 <span>B 站博主的最新一期，变成一本英文科普小刊</span></h1>
+    <nav>
+      <a class="nav-btn" href="/manage">管理和生成</a>
+    </nav>
+  </header>
+
+  {% if mags %}
+    {% set today = mags[0] %}
+    <a class="hero" href="/magazine/{{ today.day }}?v={{ today.mtime }}">
+      <div class="hero__text">
+        <div class="kicker">
+          <span class="kicker__issue">ISSUE {{ '%03d'|format(today.issue or 1) }}</span>
+          <span class="kicker__date">{{ today.day }} · 今天</span>
+        </div>
+        <h2 class="hero__title">{{ today.title }}</h2>
+        {% if today.lede %}<p class="hero__lede">{{ today.lede }}</p>{% endif %}
+        <div class="chips">
+          {% for b in today.bloggers %}<span class="chip">{{ b }}</span>{% endfor %}
+        </div>
+        <div class="hero__foot">
+          <span>{{ today.count }} 篇</span>
+          <span class="read">阅读整期 →</span>
+        </div>
+      </div>
+      {% if today.thumb %}
+        <img class="hero__thumb" src="/magazine-thumb/{{ today.day }}" alt="">
+      {% else %}
+        <div class="hero__thumb hero__thumb--empty"></div>
+      {% endif %}
+    </a>
+
+    {% if mags|length > 1 %}
+    <div class="section-label">往期</div>
+    <div class="cards">
+      {% for m in mags[1:] %}
+      <a class="mcard" href="/magazine/{{ m.day }}?v={{ m.mtime }}">
+        {% if m.thumb %}<img class="mcard__thumb" src="/magazine-thumb/{{ m.day }}" alt="">{% endif %}
+        <div class="mcard__body">
+          <div class="mcard__date">
+            {% if loop.index == 1 %}昨天 · {% elif loop.index == 2 %}前天 · {% endif %}{{ m.day }}
+          </div>
+          <h3 class="mcard__title">{{ m.title }}</h3>
+          <div class="mcard__meta">{{ m.count }} 篇{% if m.bloggers %} · {{ m.bloggers|join(' / ') }}{% endif %}</div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% else %}
+    <div class="empty-state">
+      <p>还没有生成过杂志。</p>
+      <a class="nav-btn" href="/manage">去生成第一期</a>
+    </div>
+  {% endif %}
+
+  <footer class="site-foot">
+    <span>{{ mags|length }} 期存档 · 本地生成 · 仅个人阅读</span>
+    <a href="/manage">管理和生成 ↗</a>
+  </footer>
+</div>
+</body>
+</html>

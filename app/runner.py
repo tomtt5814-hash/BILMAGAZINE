@@ -347,5 +347,13 @@ def _generate_magazine(run: dict, articles: list[dict]) -> None:
         cold_fact="whisper.cpp 的 Vulkan 后端让 AMD 显卡也能跑本地转写——这条管线每天只在你睡觉时启动一次。",
     )
     path = store.save_magazine(day, html, meta)
+    # 存一张缩略图给首页卡片用（第一篇文章的封面）
+    first_cover = next((a.get("cover_path") for a in articles if a.get("cover_path")), "")
+    if first_cover and Path(first_cover).exists():
+        try:
+            dst = config.MAGAZINE_DIR / f"thumb-{day}.jpg"
+            dst.write_bytes(Path(first_cover).read_bytes())
+        except Exception:
+            pass
     run["magazine"] = {"day": day, "file": path.name}
     store.save_run(run)
