@@ -6,7 +6,6 @@ import json
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
-
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI, Form, Request
@@ -21,7 +20,34 @@ templates = Jinja2Templates(directory=str(ROOT / "templates"))
 scheduler = BackgroundScheduler(timezone="Asia/Shanghai")
 
 
+SKIP_ONCE = config.DATA_DIR / "skip_once"
+
+
 def _scheduled_run():
+    """定时触发入口。若存在 skip_once 标记，只跳过这一次（用完即删）。"""
+    if SKIP_ONCE.exists():
+        try:
+            SKIP_ONCE.unlink()
+        except OSError:
+            pass
+        now = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+        run = {
+            "id": store.new_run_id(),
+            "trigger": "cron-skipped",
+            "started_at": now,
+            "finished_at": now,
+            "status": "done",
+            "items": [],
+            "ok": 0,
+            "failed": 0,
+            "skipped": 0,
+            "total": 0,
+            "progress": 100,
+            "note": "本次定时按标记跳过（skip_once），不发请求、不调用模型",
+            "magazine": None,
+        }
+        store.save_run(run)
+        return
     runner.start_run(trigger="cron")
 
 
