@@ -129,7 +129,13 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   animation:pulse 1.2s ease-in-out infinite;
 }
 .running-bar .go{margin-left:auto;color:var(--accent);font-weight:600}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
+
+/* ---------- 进度条 ---------- */
+.pbar{height:6px;background:var(--line);overflow:hidden;border-radius:3px}
+.pfill{height:100%;width:0;background:var(--accent);transition:width .45s ease}
+.pmeta{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin:7px 0 14px}
+.pmeta #ppct{color:var(--ink);font-weight:600}.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}
 .mcard{
   display:flex;flex-direction:column;border:1px solid var(--line);background:var(--card);
   text-decoration:none;color:inherit;overflow:hidden;

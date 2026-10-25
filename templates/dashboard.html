@@ -98,6 +98,13 @@
         <p class="note">「自动检查」会借你浏览器的登录态去每个 UP 主空间取最新一期（会闪现一个浏览器窗口，约 15 秒后自动关闭），然后下载、转写、生成杂志。已处理过的自动跳过。</p>
 
         <h2 style="margin-top:24px">本次运行</h2>
+        <div id="pwrap" style="display:none">
+          <div class="pbar"><div class="pfill" id="pfill"></div></div>
+          <div class="pmeta">
+            <span id="ppct">0%</span>
+            <span id="pstage">准备中…</span>
+          </div>
+        </div>
         <div class="log" id="log">
           {% if runs %}
             {% set r = runs[0] %}
@@ -156,6 +163,17 @@ function render(run){
       <span class="de">成功 ${run.ok} · 失败 ${run.failed} · 跳过 ${run.skipped}</span></div>
     ${items || '<div class="empty">正在收集任务…</div>'}
     ${run.note ? `<div class="it"><span class="st">note</span><span class="ti" style="white-space:normal">${run.note}</span></div>` : ''}`;
+
+  // 进度条
+  const p = Math.max(0, Math.min(100, run.progress || 0));
+  document.getElementById('pwrap').style.display = 'block';
+  document.getElementById('pfill').style.width = p + '%';
+  document.getElementById('ppct').textContent = p + '%';
+  const last = (run.items||[]).slice(-1)[0];
+  const total = run.total || (run.items||[]).length;
+  document.getElementById('pstage').textContent = run.status === 'running'
+    ? `${LABEL[last && last.state] || '准备中'} · 第 ${(run.items||[]).length}/${total} 条`
+    : (run.status === 'done' ? `完成 · 共 ${total} 条` : run.status);
 }
 
 if (runId){

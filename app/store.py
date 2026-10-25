@@ -139,6 +139,8 @@ def list_runs(limit: int = 20) -> list[dict]:
                     "ok": r.get("ok", 0),
                     "failed": r.get("failed", 0),
                     "skipped": r.get("skipped", 0),
+                    "total": r.get("total", 0),
+                    "progress": r.get("progress", 0),
                     "note": r.get("note", ""),
                 }
             )

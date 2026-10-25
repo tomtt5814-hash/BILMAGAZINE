@@ -26,6 +26,28 @@ STEP_LABEL = {
     "fail": "失败",
 }
 
+# 每个步骤在单条视频里的进度权重（百分比）
+STEP_PROGRESS = {
+    "queued": 0,
+    "check": 6,
+    "download": 18,
+    "transcribe": 62,
+    "clean": 70,
+    "summarize": 82,
+    "rewrite": 92,
+    "done": 100,
+    "skip": 100,
+    "fail": 100,
+}
+
+
+def _recalc(run: dict) -> None:
+    """按「已完成步骤 / 视频总数」折算整体进度。运行中最多显示 99%，收尾才置 100。"""
+    total = int(run.get("total") or 0) or len(run.get("items") or []) or 1
+    done = sum(STEP_PROGRESS.get(it.get("state", "queued"), 0) for it in run.get("items", []))
+    pct = max(0, min(100, round(done / total)))
+    run["progress"] = min(99, pct) if run.get("status") == "running" else pct
+
 
 def _now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%S%z")
@@ -50,6 +72,8 @@ def start_run(trigger: str = "manual", bvids: list[str] | None = None, demo: boo
         "ok": 0,
         "failed": 0,
         "skipped": 0,
+        "total": 0,
+        "progress": 0,
         "note": "",
         "magazine": None,
     }
@@ -73,6 +97,7 @@ def _item(run: dict, **kw) -> dict:
         "updated_at": _now(),
     }
     run["items"].append(item)
+    _recalc(run)
     store.save_run(run)
     return item
 
@@ -80,15 +105,19 @@ def _item(run: dict, **kw) -> dict:
 def _set(item: dict, run: dict, **kw) -> None:
     item.update(kw)
     item["updated_at"] = _now()
+    _recalc(run)
     store.save_run(run)
 
 
 def _execute(run: dict, bvids: list[str] | None, demo: bool = False) -> None:
     try:
         targets = _collect_targets(run, bvids, demo)
+        run["total"] = len(targets)
+        _recalc(run)
         if not targets:
             run["status"] = "done"
             run["note"] = "没有需要处理的视频（全部已处理或未配置订阅）"
+            run["progress"] = 100
             run["finished_at"] = _now()
             store.save_run(run)
             return
@@ -107,6 +136,7 @@ def _execute(run: dict, bvids: list[str] | None, demo: bool = False) -> None:
                     }
                 )
                 run["skipped"] += 1
+                _recalc(run)
                 store.save_run(run)
                 continue
             try:
@@ -132,6 +162,7 @@ def _execute(run: dict, bvids: list[str] | None, demo: bool = False) -> None:
         else:
             run["status"] = "done"
             run["note"] = run["note"] or "本次没有成功产出的文章"
+        run["progress"] = 100
         run["finished_at"] = _now()
         store.save_run(run)
     except Exception:
