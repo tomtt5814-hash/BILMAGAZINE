@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ m.headline }} · {{ m.day }}</title>
+<style>
+  :root{
+    --paper:#f6f2ea;
+    --ink:#15140f;
+    --ink-soft:#3a362e;
+    --muted:#6b6459;
+    --accent:#b23a1e;
+    --line:#ded4c4;
+    --card:#efe9dd;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);color:var(--ink);
+    font-family:"Source Serif 4","Iowan Old Style",Georgia,"Songti SC","Noto Serif SC",serif;
+    font-size:18px;line-height:1.72;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:52px 44px 88px}
+  .sans{font-family:ui-sans-serif,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+
+  /* ---------- 报头 ---------- */
+  .masthead{padding-bottom:34px}
+  .rule-thick{height:5px;background:var(--ink)}
+  .rule-thin{height:1px;background:var(--ink);margin-top:3px}
+  .masthead__meta{
+    display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",sans-serif;
+    font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+    padding:14px 0 0;
+  }
+  .masthead__meta b{color:var(--accent);font-weight:600;letter-spacing:.2em}
+  .masthead__title{
+    font-size:clamp(36px,5.6vw,60px);line-height:1.03;letter-spacing:-.022em;
+    margin:22px 0 0;font-weight:600;max-width:24ch;text-wrap:balance;
+  }
+  .masthead__lede{
+    font-size:19.5px;line-height:1.6;color:var(--ink-soft);margin:18px 0 0;max-width:46ch;
+  }
+  .masthead__sources{
+    list-style:none;display:flex;flex-wrap:wrap;gap:8px;padding:22px 0 0;margin:0;
+  }
+  .masthead__sources li{
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",sans-serif;
+    font-size:12px;letter-spacing:.04em;color:var(--ink-soft);
+    border:1px solid var(--line);border-radius:999px;padding:4px 12px;background:#fbf8f2;
+  }
+
+  /* ---------- 每篇 ---------- */
+  .story{
+    display:grid;grid-template-columns:84px minmax(0,1fr);gap:36px;
+    padding:54px 0 58px;border-top:1px solid var(--line);
+  }
+  .story__rail{padding-top:8px}
+  .story__num{
+    display:block;font-family:ui-sans-serif,-apple-system,"Segoe UI",sans-serif;
+    font-size:30px;font-weight:300;letter-spacing:.02em;color:var(--ink);line-height:1;
+  }
+  .story__of{
+    display:block;margin-top:6px;font-family:ui-sans-serif,sans-serif;
+    font-size:10.5px;letter-spacing:.2em;color:var(--muted);
+  }
+  .story__icon{display:block;margin-top:26px;color:var(--muted)}
+  .story__icon svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.25}
+  .story__body{min-width:0}
+  .story__title{
+    font-size:31px;line-height:1.2;letter-spacing:-.014em;margin:0;font-weight:600;
+    max-width:24ch;text-wrap:balance;
+  }
+  .story__byline{
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",sans-serif;
+    font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+    margin:12px 0 0;
+  }
+  .story__byline em{font-style:normal;color:var(--ink-soft)}
+  .story__fig{margin:26px 0 8px}
+  .story__fig img{
+    width:100%;aspect-ratio:16/9;object-fit:cover;display:block;
+    border:1px solid var(--line);background:var(--card);
+    filter:saturate(.72) contrast(.98) brightness(1.03);
+  }
+  .story__fig figcaption{
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",sans-serif;
+    font-size:11.5px;letter-spacing:.06em;color:var(--muted);margin-top:8px;
+  }
+  .story__body>p.story__byline{max-width:none}
+  .story__text>p{
+    max-width:64ch;margin:20px 0 0;
+  }
+  .dropcap{
+    font-size:46px;line-height:1;font-weight:600;
+    color:var(--accent);padding-right:2px;vertical-align:-4px;
+  }
+  .story__pull{
+    max-width:54ch;margin:30px 0 8px;padding:2px 0 2px 22px;
+    border-left:2px solid var(--accent);font-size:21px;line-height:1.5;
+    font-style:italic;color:#2b2620;
+  }
+  .story__links{
+    margin-top:28px;font-family:ui-sans-serif,-apple-system,"Segoe UI",sans-serif;
+    font-size:12.5px;letter-spacing:.04em;
+  }
+  .story__links a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent);padding-bottom:1px}
+  .story__links a:hover{opacity:.75}
+
+  /* ---------- 页脚 ---------- */
+  .colophon{margin-top:22px;border-top:2px solid var(--ink);padding-top:22px}
+  .coldfact{
+    background:var(--card);padding:18px 22px;margin:0 0 18px;
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",sans-serif;
+    font-size:13.5px;line-height:1.6;color:var(--ink-soft);
+  }
+  .coldfact span{
+    display:block;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:6px;
+  }
+  .gen{
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",sans-serif;
+    font-size:11px;letter-spacing:.1em;color:var(--muted);margin:0;
+  }
+
+  @media (max-width:720px){
+    .wrap{padding:34px 22px 64px}
+    .story{grid-template-columns:52px minmax(0,1fr);gap:18px;padding:40px 0}
+    .story__num{font-size:22px}
+    .story__title{font-size:25px}
+    .masthead__title{font-size:34px}
+    .dropcap{font-size:36px}
+  }
+  @media print{
+    body{background:#fff}
+    .wrap{padding:0;max-width:none}
+    .story{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div class="rule-thick"></div>
+    <div class="rule-thin"></div>
+    <div class="masthead__meta">
+      <span><b>ISSUE {{ m.issue }}</b> &nbsp;·&nbsp; {{ m.day }}</span>
+      <span>{{ m.articles|length }} STORIES</span>
+    </div>
+    <h1 class="masthead__title">{{ m.headline }}</h1>
+    <p class="masthead__lede">{{ m.lede }}</p>
+    <ul class="masthead__sources">
+      {% for b in m.bloggers %}<li>{{ b }}</li>{% endfor %}
+    </ul>
+  </header>
+
+  <main>
+  {% for a in m.articles %}
+    <article class="story" data-source-bvid="{{ a.bvid }}" data-source-comment-rpid="{{ a.rpid or '' }}">
+      <div class="story__rail">
+        <span class="story__num">{{ '%02d'|format(loop.index) }}</span>
+        <span class="story__of">/ {{ '%02d'|format(m.articles|length) }}</span>
+        <span class="story__icon">{{ a.icon_svg|safe }}</span>
+      </div>
+      <div class="story__body">
+        <h2 class="story__title">{{ a.title }}</h2>
+        <p class="story__byline">{{ a.author }} {% if a.pubdate_human %}· <em>{{ a.pubdate_human }}</em>{% endif %}</p>
+        {% if a.cover_data %}
+        <figure class="story__fig">
+          <img src="{{ a.cover_data }}" alt="{{ a.title }}">
+          <figcaption>{{ a.caption }}</figcaption>
+        </figure>
+        {% endif %}
+        <div class="story__text">
+          {% for p in a.paragraphs %}
+            {% if loop.first and a.dropcap %}
+              <p><span class="dropcap">{{ a.dropcap }}</span>{{ p }}</p>
+            {% else %}
+              <p>{{ p }}</p>
+            {% endif %}
+          {% endfor %}
+        </div>
+        {% if a.pull %}<blockquote class="story__pull">{{ a.pull }}</blockquote>{% endif %}
+        <div class="story__links">
+          <a href="{{ a.url }}" target="_blank" rel="noopener">Watch the original on Bilibili →</a>
+        </div>
+      </div>
+    </article>
+  {% endfor %}
+  </main>
+
+  <footer class="colophon">
+    <p class="coldfact"><span>本期冷知识</span>{{ m.cold_fact }}</p>
+    <p class="gen">GENERATED {{ m.generated_at }} · 本地生成 · 仅个人阅读</p>
+  </footer>
+</div>
+</body>
+</html>

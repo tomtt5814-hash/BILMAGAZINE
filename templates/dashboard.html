@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>博主日报杂志</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div class="shell">
+  <div class="top">
+    <h1>博主日报杂志 <span>每日自动把 B 站博主的最新一期，变成一本英文科普小刊</span></h1>
+    <div class="date" id="clock">{{ status.next_run and ('NEXT · ' ~ status.next_run) or 'LOCAL' }}</div>
+  </div>
+
+  <div class="pills">
+    <span class="pill {{ 'ok' if status.llm_key and status.llm_provider != 'mock' else 'warn' }}">
+      LLM：<b>{{ '真实 API · ' ~ status.llm_model if status.llm_key and status.llm_provider != 'mock' else '未配置（演示模式）' }}</b>
+    </span>
+    <span class="pill {{ 'ok' if status.whisper_ok else 'warn' }}">
+      转写：<b>{{ 'whisper.cpp 就绪' if status.whisper_ok else '不可用' }}</b>
+    </span>
+    <span class="pill {{ 'ok' if status.cookie else 'warn' }}">
+      B 站登录态：<b>{{ '已配置 Cookie' if status.cookie else '未配置（列表接口会被风控）' }}</b>
+    </span>
+    <span class="pill {{ 'ok' if status.schedule != '未启用' else '' }}">
+      定时：<b>{{ status.schedule }}</b>
+    </span>
+    <span class="pill">已处理：<b>{{ processed_count }}</b> 期</span>
+  </div>
+
+  {% if not (status.llm_key and status.llm_provider != 'mock') %}
+  <div class="banner">
+    <b>当前是演示模式。</b>LLM 未配置，所以「摘要 / 六级改写」两步走的是
+    <code>data/demo/llm_cache.json</code> 里的预置样例（文案由助手按需求书 F4 标准手写，不是真实模型输出）。
+    填好 <code>.env</code> 的 <code>LLM_API_KEY</code> 后重启即可走真实链路。
+  </div>
+  {% endif %}
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2>订阅列表</h2>
+        {% if subs %}
+        <table>
+          <thead><tr><th>博主</th><th>UID</th><th>检查期数</th><th>状态</th><th></th></tr></thead>
+          <tbody>
+          {% for b in subs %}
+            <tr>
+              <td>{{ b.name }}</td>
+              <td style="color:#6d665a">{{ b.uid }}</td>
+              <td>
+                <form class="inline" method="post" action="/subscriptions/{{ b.uid }}/n">
+                  <input type="number" name="recent_n" value="{{ b.recent_n }}" min="1" max="5"
+                         style="width:64px" onchange="this.form.submit()">
+                </form>
+              </td>
+              <td>{{ '开启' if b.enabled else '关闭' }}</td>
+              <td style="text-align:right">
+                <form class="inline" method="post" action="/subscriptions/{{ b.uid }}/toggle">
+                  <button class="ghost tiny">{{ '关闭' if b.enabled else '开启' }}</button>
+                </form>
+                <form class="inline" method="post" action="/subscriptions/{{ b.uid }}/delete">
+                  <button class="ghost tiny">删除</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty">还没有订阅。填一个 UP 主 UID 或空间链接开始。</div>
+        {% endif %}
+
+        <form class="row" method="post" action="/subscriptions" style="margin-top:16px">
+          <div class="f"><label>UP 主 UID / 空间链接</label><input type="text" name="uid_input" placeholder="946974 或 https://space.bilibili.com/946974" required></div>
+          <div class="f"><label>备注名（可选）</label><input type="text" name="name" placeholder="影视飓风"></div>
+          <div style="width:90px"><label>期数</label><input type="number" name="recent_n" value="1" min="1" max="5"></div>
+          <button>加入</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>运行</h2>
+        <form class="row" method="post" action="/run" style="margin-bottom:14px">
+          <div class="f"><label>手动处理单个视频（BV 号或链接）</label><input type="text" name="bv_input" placeholder="BV1yUHP6rEYD"></div>
+          <button>处理</button>
+        </form>
+        <div class="row">
+          <form class="inline" method="post" action="/run"><button>跑一次全部订阅</button></form>
+          <form class="inline" method="post" action="/run-demo"><button class="ghost">用演示数据生成一期</button></form>
+        </div>
+        <p class="note">「补跑」= 点「跑一次全部订阅」，逻辑与 22:30 定时任务完全相同，已处理过的 BV 会自动跳过。</p>
+
+        <h2 style="margin-top:24px">本次运行</h2>
+        <div class="log" id="log">
+          {% if runs %}
+            {% set r = runs[0] %}
+            <div class="it"><span class="st">{{ r.status }}</span><span class="ti">{{ r.started_at }}</span><span class="de">成功 {{ r.ok }} · 失败 {{ r.failed }} · 跳过 {{ r.skipped }}</span></div>
+          {% else %}
+            <div class="empty">还没有运行记录。</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>今日杂志</h2>
+        {% if magazines %}
+          {% set m = magazines[0] %}
+          <iframe class="magif" src="/magazine/{{ m.day }}" title="今日杂志"></iframe>
+          <p class="note">{{ m.day }} · {{ m.count }} 篇 · <a href="/magazine/{{ m.day }}" target="_blank">新窗口打开</a></p>
+        {% else %}
+          <div class="empty">还没有生成过杂志。点上面的「用演示数据生成一期」看看效果。</div>
+        {% endif %}
+      </div>
+
+      <div class="card">
+        <h2>历史</h2>
+        {% if magazines %}
+        <ul class="hist">
+          {% for m in magazines %}
+          <li><a href="/magazine/{{ m.day }}" target="_blank">{{ m.title }}</a><span class="d">{{ m.day }}</span></li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty">暂无历史。</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const runId = params.get('run');
+const logEl = document.getElementById('log');
+const LABEL = {queued:'排队',check:'检查',download:'下载',transcribe:'转写',clean:'清洗',summarize:'摘要',rewrite:'改写',done:'完成',skip:'跳过',fail:'失败'};
+
+function render(run){
+  const items = (run.items||[]).map(it => `
+    <div class="it">
+      <span class="st ${it.state}">${LABEL[it.state]||it.state}</span>
+      <span class="ti">${(it.title||it.bvid||'')}</span>
+      <span class="de">${it.detail||''}</span>
+    </div>`).join('');
+  logEl.innerHTML = `
+    <div class="it"><span class="st ${run.status}">${run.status}</span>
+      <span class="ti">${run.started_at} · ${run.trigger}</span>
+      <span class="de">成功 ${run.ok} · 失败 ${run.failed} · 跳过 ${run.skipped}</span></div>
+    ${items || '<div class="empty">正在收集任务…</div>'}
+    ${run.note ? `<div class="it"><span class="st">note</span><span class="ti" style="white-space:normal">${run.note}</span></div>` : ''}`;
+}
+
+if (runId){
+  const tick = async () => {
+    const res = await fetch('/api/runs/' + runId);
+    if (!res.ok) return;
+    const run = await res.json();
+    render(run);
+    if (run.status === 'running') setTimeout(tick, 1200);
+    else setTimeout(() => { location.href = '/'; }, 1500);
+  };
+  tick();
+}
+</script>
+</body>
+</html>
