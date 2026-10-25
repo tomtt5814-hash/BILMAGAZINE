@@ -99,6 +99,10 @@
           <div class="f"><label>手动处理视频（可填多个，逗号分隔）</label><input type="text" name="bv_input" placeholder="BV1yUHP6rEYD,BV1GDHA6HEHu"></div>
           <button>处理</button>
         </form>
+        <form class="row" method="post" action="/run" style="margin-bottom:10px">
+          <div class="f"><label>粘贴公众号文章链接（最可靠）</label><input type="text" name="bv_input" placeholder="https://mp.weixin.qq.com/s/..."></div>
+          <button class="ghost">加成一篇</button>
+        </form>
         <p class="note" style="margin:0 0 14px">没配 B 站 Cookie 时，点订阅表里的「空间 ↗」在浏览器取最新一期 BV 号，粘到上面即可。</p>
         <div class="row">
           <form class="inline" method="post" action="/run"><button>自动检查并生成一期</button></form>

@@ -27,12 +27,33 @@ class WeChatError(Exception):
 
 
 def article_id(url: str) -> str:
-    """稳定的去重 key：优先用 __biz+mid+idx，否则用路径哈希。"""
+    """稳定的去重 key：__biz+mid+idx 优先，其次 /s/<短码>，最后整段 URL 的哈希。"""
     m = re.search(r"[?&]__biz=([^&]+).*?[?&]mid=(\d+).*?[?&]idx=(\d+)", url)
     if m:
         return "wx:" + hashlib.md5("|".join(m.groups()).encode()).hexdigest()[:16]
-    path = url.split("?")[0].rstrip("/").rsplit("/", 1)[-1]
-    return "wx:" + hashlib.md5(path.encode()).hexdigest()[:16]
+    short = re.search(r"/s/([A-Za-z0-9_-]{8,})", url)
+    if short:
+        return "wx:" + hashlib.md5(short.group(1).encode()).hexdigest()[:16]
+    # 搜狗给的是签名地址，同一篇文章每次签名不同，只能靠抓取后的 canonical id
+    return ""
+
+
+def canonical_id(html: str, fallback: str) -> str:
+    """从文章 HTML 里取稳定身份：biz/mid/idx/sn，或 账号+标题+时间 的哈希。"""
+    biz = re.search(r'var biz = "([^"]*)"', html) or re.search(r'[?&]__biz=([^&"\']+)', html)
+    mid = re.search(r'var mid = "(\d+)"', html) or re.search(r'[?&]mid=(\d+)', html)
+    idx = re.search(r'var idx = "(\d+)"', html) or re.search(r'[?&]idx=(\d+)', html)
+    if biz and mid and idx and biz.group(1):
+        key = "|".join((biz.group(1), mid.group(1), idx.group(1)))
+        return "wx:" + hashlib.md5(key.encode()).hexdigest()[:16]
+
+    title = re.search(r'var msg_title = [\'"](.*?)[\'"]', html, re.S)
+    nick = re.search(r'var nickname = [\'"](.*?)[\'"]', html)
+    ct = re.search(r'var ct = [\'"](\d+)[\'"]', html)
+    if title:
+        key = "|".join((nick.group(1) if nick else "", title.group(1), ct.group(1) if ct else ""))
+        return "wx:" + hashlib.md5(key.encode()).hexdigest()[:16]
+    return fallback or "wx:" + hashlib.md5(html[:2000].encode()).hexdigest()[:16]
 
 
 def _text(html: str, pattern: str, flags: int = re.S) -> str:
@@ -86,7 +107,7 @@ def fetch_article(url: str) -> dict:
             break
 
     return {
-        "id": article_id(url),
+        "id": canonical_id(h, article_id(url)),
         "url": url,
         "title": title,
         "account": account,
@@ -148,4 +169,5 @@ def search_account(account: str, limit: int = 5) -> list[dict]:
         except Exception:
             continue
         time.sleep(0.6)
+    out.sort(key=lambda a: a.get("published") or 0, reverse=True)
     return out

@@ -43,6 +43,9 @@ LLM_TEMPERATURE = float(_get("LLM_TEMPERATURE", "0.8") or 0.8)
 
 BILI_COOKIE = _get("BILI_COOKIE")
 
+# 公众号自动发现：只接受这么多天内发布的文章（搜狗索引常常滞后，旧文不要）
+WECHAT_MAX_AGE_DAYS = int(_get("WECHAT_MAX_AGE_DAYS", "2") or 2)
+
 TRANSCRIBE_ENGINE = _get("TRANSCRIBE_ENGINE", "auto").lower()
 WHISPER_DIR = ROOT / _get("WHISPER_DIR", "tools/whisper")
 WHISPER_MODEL = _get("WHISPER_MODEL", "ggml-small.bin")

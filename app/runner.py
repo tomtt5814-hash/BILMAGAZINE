@@ -220,17 +220,27 @@ def _collect_targets(run: dict, bvids: list[str] | None, demo: bool = False,
         run["note"] = "订阅列表为空"
         return targets
 
-    # 公众号订阅：搜狗发现最新文章（脆弱，失败就跳过该号）
+    # 公众号订阅：搜狗发现最新文章（索引可能滞后，所以只收最近几天的）
     for sub in [b for b in subs if b.get("kind") == "wechat"]:
         want = int(sub.get("recent_n", 1) or 1)
         try:
-            arts = wechat_source.search_account(sub["uid"], want)
+            arts = wechat_source.search_account(sub["uid"], max(want, 5))
         except Exception:
             arts = []
         if not arts:
             run["note"] = f"公众号「{sub.get('name') or sub['uid']}」没取到文章（搜狗可能限流）"
             continue
-        for art in arts:
+        cutoff = time.time() - config.WECHAT_MAX_AGE_DAYS * 86400
+        fresh = [a for a in arts if (a.get("published") or 0) >= cutoff]
+        if not fresh:
+            newest = max((a.get("published") or 0) for a in arts)
+            when = time.strftime("%Y-%m-%d", time.localtime(newest)) if newest else "未知"
+            run["note"] = (
+                f"公众号「{sub.get('name') or sub['uid']}」搜狗只返回旧文（最新 {when}），"
+                f"没有 {config.WECHAT_MAX_AGE_DAYS} 天内的新文；可直接贴文章链接"
+            )
+            continue
+        for art in fresh[:want]:
             targets.append({
                 "kind": "wechat", "url": art["url"], "key": art["id"],
                 "title": art["title"], "author": art["account"] or sub.get("name", ""),
