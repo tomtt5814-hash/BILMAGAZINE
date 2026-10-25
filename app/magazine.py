@@ -51,6 +51,10 @@ def _paragraphs(body: str) -> list[str]:
     for b in blocks:
         if b.startswith("#") or b.startswith("- ") or b.startswith("* "):
             b = b.lstrip("#-* ").strip()
+        # 模型偶尔会带 Markdown 强调，正文里只保留文字
+        b = re.sub(r"\*\*(.+?)\*\*", r"\1", b)
+        b = re.sub(r"\*(.+?)\*", r"\1", b)
+        b = b.replace("**", "").replace("`", "")
         out.append(b)
     return out
 
