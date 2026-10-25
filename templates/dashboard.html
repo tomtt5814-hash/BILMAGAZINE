@@ -9,7 +9,7 @@
 <body>
 <div class="shell">
   <div class="top">
-    <h1>博主日报杂志 <span>每日自动把 B 站博主的最新一期，变成一本英文科普小刊</span></h1>
+    <h1>博主日报杂志 <span>把 B 站博主的最新一期，变成一本英文科普小刊</span></h1>
     <div class="date" id="clock">{{ status.next_run and ('NEXT · ' ~ status.next_run) or 'LOCAL' }}</div>
   </div>
 
@@ -20,13 +20,13 @@
     <span class="pill {{ 'ok' if status.asr_ok else 'warn' }}">
       转写：<b>{{ status.asr_label }}</b>
     </span>
-    <span class="pill {{ 'ok' if status.cookie else 'warn' }}">
-      B 站登录态：<b>{{ '已配置 Cookie' if status.cookie else '未配置（列表接口会被风控）' }}</b>
+    <span class="pill {{ 'ok' if status.src_ok else 'warn' }}" title="{{ status.src_hint }}">
+      取最新一期：<b>{{ status.src_label }}</b>
     </span>
-    <span class="pill {{ 'ok' if status.schedule != '未启用' else '' }}">
+    <span class="pill {{ 'ok' if status.schedule != '关闭（手动触发）' else '' }}">
       定时：<b>{{ status.schedule }}</b>
     </span>
-    <span class="pill">已处理：<b>{{ processed_count }}</b> 期</span>
+    <span class="pill">已处理：<b>{{ processed_count }}</b> 个视频</span>
   </div>
 
   {% if not (status.llm_key and status.llm_provider != 'mock') %}
@@ -112,8 +112,8 @@
         <h2>今日杂志</h2>
         {% if magazines %}
           {% set m = magazines[0] %}
-          <iframe class="magif" src="/magazine/{{ m.day }}" title="今日杂志"></iframe>
-          <p class="note">{{ m.day }} · {{ m.count }} 篇 · <a href="/magazine/{{ m.day }}" target="_blank">新窗口打开</a></p>
+          <iframe class="magif" src="/magazine/{{ m.day }}?v={{ m.mtime }}" title="今日杂志"></iframe>
+          <p class="note">{{ m.day }} · {{ m.count }} 篇 · <a href="/magazine/{{ m.day }}?v={{ m.mtime }}" target="_blank">新窗口打开</a></p>
         {% else %}
           <div class="empty">还没有生成过杂志。点上面的「用演示数据生成一期」看看效果。</div>
         {% endif %}
@@ -124,7 +124,7 @@
         {% if magazines %}
         <ul class="hist">
           {% for m in magazines %}
-          <li><a href="/magazine/{{ m.day }}" target="_blank">{{ m.title }}</a><span class="d">{{ m.day }}</span></li>
+          <li><a href="/magazine/{{ m.day }}?v={{ m.mtime }}" target="_blank">{{ m.title }}</a><span class="d">{{ m.day }}</span></li>
           {% endfor %}
         </ul>
         {% else %}

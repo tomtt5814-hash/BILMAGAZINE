@@ -160,6 +160,8 @@ def list_magazines() -> list[dict]:
     out = []
     for f in sorted(config.MAGAZINE_DIR.glob("daily-magazine-*.html"), reverse=True):
         day = f.stem.replace("daily-magazine-", "")
+        if day == "demo":
+            continue
         meta = read_json(f.with_suffix(".json"), {})
         out.append(
             {
@@ -168,6 +170,7 @@ def list_magazines() -> list[dict]:
                 "title": meta.get("headline", f"每日杂志 {day}"),
                 "count": meta.get("count", 0),
                 "size_kb": round(f.stat().st_size / 1024),
+                "mtime": int(f.stat().st_mtime),
             }
         )
     return out

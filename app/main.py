@@ -47,6 +47,8 @@ app.mount("/static", StaticFiles(directory=str(ROOT / "static")), name="static")
 
 
 def _status() -> dict:
+    import shutil
+
     cpp_ok, cpp_info = transcribe.whisper_available()
     faster_ok = transcribe.faster_available()
     if cpp_ok:
@@ -55,16 +57,30 @@ def _status() -> dict:
         asr_label, asr_ok = f"faster-whisper ({Path(str(config.FASTER_MODEL)).name})", True
     else:
         asr_label, asr_ok = "不可用", False
+
+    if config.BILI_COOKIE:
+        src_label, src_ok = "接口 Cookie", True
+        src_hint = "已配置 Cookie，走接口取最新一期"
+    elif shutil.which("bsk"):
+        src_label, src_ok = "浏览器登录态", True
+        src_hint = "借本机浏览器登录态取最新一期（会短暂开窗）"
+    else:
+        src_label, src_ok = "未配置", False
+        src_hint = "需要 bsk 浏览器插件，或配置 BILI_COOKIE"
+
     return {
         "llm_provider": config.LLM_PROVIDER,
         "llm_key": bool(config.LLM_API_KEY),
         "llm_model": config.LLM_MODEL,
         "asr_ok": asr_ok,
         "asr_label": asr_label,
+        "src_ok": src_ok,
+        "src_label": src_label,
+        "src_hint": src_hint,
         "whisper_ok": asr_ok,
         "whisper_info": cpp_info,
         "cookie": bool(config.BILI_COOKIE),
-        "schedule": f"{config.SCHEDULE_TIME} 每日" if config.SCHEDULE_ENABLED else "未启用（手动触发）",
+        "schedule": f"{config.SCHEDULE_TIME} 每日" if config.SCHEDULE_ENABLED else "关闭（手动触发）",
         "next_run": _next_run(),
     }
 

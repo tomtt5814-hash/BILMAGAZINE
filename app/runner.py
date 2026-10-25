@@ -114,10 +114,11 @@ def _execute(run: dict, bvids: list[str] | None, demo: bool = False) -> None:
                 if article:
                     articles.append(article)
                     run["ok"] += 1
-                    store.mark_processed(
-                        article["bvid"], title=article.get("title", ""),
-                        author=article.get("author", ""), day=time.strftime("%Y-%m-%d"),
-                    )
+                    if not run.get("demo"):
+                        store.mark_processed(
+                            article["bvid"], title=article.get("title", ""),
+                            author=article.get("author", ""), day=time.strftime("%Y-%m-%d"),
+                        )
             except Exception as exc:
                 run["failed"] += 1
                 if run["items"]:
@@ -312,7 +313,8 @@ def _process_one(run: dict, target: dict) -> dict | None:
 
 
 def _generate_magazine(run: dict, articles: list[dict]) -> None:
-    day = time.strftime("%Y-%m-%d")
+    # 演示运行写到独立文件，绝不覆盖当天真实的一期
+    day = "demo" if run.get("demo") else time.strftime("%Y-%m-%d")
     titles = [a["title"] for a in articles]
     try:
         headline = llm.make_headline(titles)
