@@ -178,29 +178,59 @@ def _collect_targets(run: dict, bvids: list[str] | None, demo: bool = False) -> 
         run["note"] = "订阅列表为空"
         return targets
 
-    for sub in subs:
-        n = int(sub.get("recent_n", 1) or 1)
-        try:
-            vids = client.space_videos(sub["uid"], n)
-        except source.SourceBlocked as exc:
-            run["note"] = str(exc)
-            _item(run, state="fail", detail=f"{sub.get('name','')}：{exc}")
-            run["failed"] += 1
-            continue
-        for v in vids:
-            bv = v.get("bvid")
-            if not bv:
+    # 有 Cookie 走接口；没有就借浏览器登录态读空间页（会自动开合一个 Agent Window）
+    if config.BILI_COOKIE:
+        for sub in subs:
+            n = int(sub.get("recent_n", 1) or 1)
+            try:
+                vids = client.space_videos(sub["uid"], n)
+            except source.SourceBlocked as exc:
+                run["note"] = str(exc)
+                _item(run, state="fail", detail=f"{sub.get('name','')}：{exc}")
+                run["failed"] += 1
                 continue
-            targets.append(
-                {
-                    "bvid": bv,
-                    "title": v.get("title", ""),
-                    "author": sub.get("name") or v.get("author", ""),
-                    "cover": v.get("cover", ""),
-                    "pubdate": v.get("pubdate"),
-                    "skip": bv in processed,
-                }
-            )
+            for v in vids:
+                bv = v.get("bvid")
+                if not bv:
+                    continue
+                targets.append(
+                    {
+                        "bvid": bv,
+                        "title": v.get("title", ""),
+                        "author": sub.get("name") or v.get("author", ""),
+                        "cover": v.get("cover", ""),
+                        "pubdate": v.get("pubdate"),
+                        "skip": bv in processed,
+                    }
+                )
+        return targets
+
+    from . import browser_source
+
+    try:
+        mapping = browser_source.latest_bvs(
+            [{"uid": s["uid"], "name": s.get("name", ""), "recent_n": s.get("recent_n", 1)} for s in subs]
+        )
+    except browser_source.BrowserUnavailable as exc:
+        run["note"] = f"浏览器不可用：{exc}。可以改用下方「手动处理视频」直接贴 BV 号。"
+        _item(run, state="fail", detail=run["note"])
+        run["failed"] += 1
+        return targets
+
+    for sub in subs:
+        for bv in mapping.get(str(sub["uid"]), []):
+            if bv in processed:
+                targets.append({"bvid": bv, "title": "", "author": sub.get("name", ""), "skip": True})
+                continue
+            try:
+                info = client.video_info(bv)
+            except Exception as exc:
+                _item(run, bvid=bv, state="fail", detail=f"取视频信息失败：{exc}")
+                run["failed"] += 1
+                continue
+            t = _target_from_info(info, processed)
+            t["author"] = t.get("author") or sub.get("name", "")
+            targets.append(t)
     return targets
 
 

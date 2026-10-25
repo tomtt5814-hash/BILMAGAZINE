@@ -90,10 +90,10 @@
         </form>
         <p class="note" style="margin:0 0 14px">没配 B 站 Cookie 时，点订阅表里的「空间 ↗」在浏览器取最新一期 BV 号，粘到上面即可。</p>
         <div class="row">
-          <form class="inline" method="post" action="/run"><button>跑一次全部订阅</button></form>
+          <form class="inline" method="post" action="/run"><button>自动检查并生成一期</button></form>
           <form class="inline" method="post" action="/run-demo"><button class="ghost">用演示数据生成一期</button></form>
         </div>
-        <p class="note">「跑一次全部订阅」需要 B 站 Cookie 才能自动取最新一期；没配就用手动 BV，逻辑与定时任务完全相同，已处理过的会自动跳过。</p>
+        <p class="note">「自动检查」会借你浏览器的登录态去每个 UP 主空间取最新一期（会闪现一个浏览器窗口，约 15 秒后自动关闭），然后下载、转写、生成杂志。已处理过的自动跳过。</p>
 
         <h2 style="margin-top:24px">本次运行</h2>
         <div class="log" id="log">
