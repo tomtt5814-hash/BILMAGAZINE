@@ -13,7 +13,22 @@
     --accent:#b23a1e;
     --line:#ded4c4;
     --card:#efe9dd;
+    --fs-body:18px;
+    --fs-zh:14.5px;
+    --fs-gloss:11px;
   }
+  body.night{
+    --paper:#14130f;
+    --ink:#e9e3d6;
+    --ink-soft:#cbc4b4;
+    --muted:#9a9384;
+    --accent:#e2704a;
+    --line:#332f28;
+    --card:#1d1b16;
+  }
+  body.night .story__fig img{filter:saturate(.55) brightness(.78)}
+  body.night .masthead__sources li{background:#1d1b16}
+  body.night .coldfact{background:#1d1b16}
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
   body{
@@ -84,7 +99,7 @@
   .zh-line{
     display:none;max-width:64ch;margin:-6px 0 18px;
     font-family:"Songti SC","Noto Serif SC","Microsoft YaHei",sans-serif;
-    font-size:14.5px;line-height:1.85;color:#6b6459;
+    font-size:var(--fs-zh);line-height:1.85;color:#6b6459;
     padding-left:12px;border-left:2px solid #e2d9c8;
   }
   body.show-zh .zh-line{display:block}
@@ -106,8 +121,9 @@
   }
   .story__body>p.story__byline{max-width:none}
   .story__text>p{
-    max-width:64ch;margin:20px 0 0;
+    max-width:64ch;margin:20px 0 0;font-size:var(--fs-body);
   }
+  .wx-inline p,.wx-inline section{font-size:var(--fs-body)}
   .dropcap{
     font-size:46px;line-height:1;font-weight:600;
     color:var(--accent);padding-right:2px;vertical-align:-4px;
@@ -121,7 +137,7 @@
   .w-cet6:hover{border-bottom-color:#1f5fa8}
   .w .zh{
     display:none;font-family:ui-sans-serif,-apple-system,"Segoe UI",sans-serif;
-    font-size:11px;font-weight:400;letter-spacing:0;
+    font-size:var(--fs-gloss);font-weight:400;letter-spacing:0;
     color:#4a7aa8;background:transparent;
     padding:0 1px;margin-left:1px;white-space:nowrap;
   }
@@ -146,6 +162,23 @@
   }
   .vbtn:hover{color:var(--ink);border-color:#c9bfae}
   .vbtn.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+  /* ---------- 工具箱 ---------- */
+  .toolbox{
+    position:fixed;right:18px;bottom:64px;z-index:30;width:268px;padding:14px 16px 16px;
+    background:var(--card);border:1px solid var(--line);box-shadow:0 8px 30px rgba(21,20,15,.14);
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",sans-serif;font-size:12.5px;
+  }
+  .tb-row{display:flex;align-items:center;gap:8px;margin:9px 0}
+  .tb-row:first-child{margin-top:0}
+  .tb-label{width:38px;flex:none;color:var(--muted);font-size:11.5px;letter-spacing:.06em}
+  .tb-seg{
+    flex:1;padding:5px 0;border:1px solid var(--line);background:transparent;
+    color:var(--muted);font:inherit;font-size:11.5px;cursor:pointer;
+  }
+  .tb-seg.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .toolbox input[type=range]{flex:1;accent-color:var(--accent);height:16px}
+  .toolbox em{width:24px;text-align:right;font-style:normal;color:var(--ink);font-size:11.5px}
   .story__pull{
     max-width:54ch;margin:30px 0 8px;padding:2px 0 2px 22px;
     border-left:2px solid var(--accent);font-size:21px;line-height:1.5;
@@ -159,7 +192,7 @@
   .wx-inline img{max-width:100%;height:auto;display:block;margin:16px auto;border-radius:3px}
   .wx-inline .zh-orig{display:none}
   body.show-zh .wx-inline .zh-orig{
-    display:block;color:#8f8a80;font-size:14.5px;line-height:1.8;
+    display:block;color:#8f8a80;font-size:var(--fs-zh);line-height:1.8;
     border-left:2px solid #e6e0d4;padding-left:10px;margin-top:6px;
   }
   .story__links{
@@ -269,9 +302,33 @@
 </div>
 
 <div class="vctl" role="group" aria-label="词汇辅助">
+  <button class="vbtn" id="tb-open" aria-expanded="false">工具箱</button>
   <button class="vbtn" data-toggle="zh" aria-pressed="false">双语</button>
   <button class="vbtn" data-toggle="cet6" aria-pressed="false">CET-6 释义</button>
   <button class="vbtn" data-toggle="adv" aria-pressed="false">超纲词释义</button>
+</div>
+
+<div class="toolbox" id="toolbox" hidden>
+  <div class="tb-row">
+    <span class="tb-label">主题</span>
+    <button class="tb-seg on" data-theme="day">白天</button>
+    <button class="tb-seg" data-theme="night">夜间</button>
+  </div>
+  <div class="tb-row">
+    <span class="tb-label">英文</span>
+    <input type="range" id="fs-body" min="14" max="26" step="1">
+    <em id="fs-body-v"></em>
+  </div>
+  <div class="tb-row">
+    <span class="tb-label">双语</span>
+    <input type="range" id="fs-zh" min="11" max="22" step="1">
+    <em id="fs-zh-v"></em>
+  </div>
+  <div class="tb-row">
+    <span class="tb-label">释义</span>
+    <input type="range" id="fs-gloss" min="9" max="18" step="1">
+    <em id="fs-gloss-v"></em>
+  </div>
 </div>
 
 <script>
@@ -303,6 +360,51 @@
     if (w && !w.classList.contains('on')) { w.classList.add('on'); }
     else if (w) { w.classList.remove('on'); }
   });
+
+  // ---------- 工具箱：主题 + 三组字号 ----------
+  var KEY = 'bilmag.prefs';
+  var prefs = { theme: 'day', body: 18, zh: 15, gloss: 11 };
+  try { Object.assign(prefs, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
+
+  function apply(){
+    document.body.classList.toggle('night', prefs.theme === 'night');
+    document.documentElement.style.setProperty('--fs-body', prefs.body + 'px');
+    document.documentElement.style.setProperty('--fs-zh', prefs.zh + 'px');
+    document.documentElement.style.setProperty('--fs-gloss', prefs.gloss + 'px');
+    document.querySelectorAll('.tb-seg').forEach(function(b){
+      b.classList.toggle('on', b.getAttribute('data-theme') === prefs.theme);
+    });
+    ['body','zh','gloss'].forEach(function(k){
+      var el = document.getElementById('fs-' + k);
+      if (el) el.value = prefs[k];
+      var lab = document.getElementById('fs-' + k + '-v');
+      if (lab) lab.textContent = prefs[k];
+    });
+    localStorage.setItem(KEY, JSON.stringify(prefs));
+  }
+
+  var tb = document.getElementById('toolbox');
+  var openBtn = document.getElementById('tb-open');
+  if (openBtn && tb){
+    openBtn.addEventListener('click', function(){
+      var show = tb.hasAttribute('hidden');
+      if (show) tb.removeAttribute('hidden'); else tb.setAttribute('hidden', '');
+      openBtn.classList.toggle('on', show);
+      openBtn.setAttribute('aria-expanded', String(show));
+    });
+  }
+  document.querySelectorAll('.tb-seg').forEach(function(b){
+    b.addEventListener('click', function(){
+      prefs.theme = b.getAttribute('data-theme');
+      apply();
+    });
+  });
+  ['body','zh','gloss'].forEach(function(k){
+    var el = document.getElementById('fs-' + k);
+    if (!el) return;
+    el.addEventListener('input', function(){ prefs[k] = Number(el.value); apply(); });
+  });
+  apply();
 })();
 </script>
 </body>

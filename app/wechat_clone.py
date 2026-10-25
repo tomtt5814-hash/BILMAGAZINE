@@ -180,8 +180,11 @@ def _translate(texts: list[str]) -> list[str]:
     return [r or t for r, t in zip(result, texts)]
 
 
-def build_content(article: dict) -> str:
-    """只产出正文 HTML（内联进杂志用），不含外壳与标题。"""
+def build_content(article: dict, ctx: dict[str, str] | None = None) -> str:
+    """只产出正文 HTML（内联进杂志用），不含外壳与标题。
+
+    ctx：语境义覆盖表，交给词汇层优先使用。
+    """
     raw = article.get("html") or ""
     if not raw:
         raise ValueError("缺少原始 HTML")
@@ -197,6 +200,9 @@ def build_content(article: dict) -> str:
     texts = [" ".join("".join(b.itertext()).split()) for b in blocks]
     translated = _translate(texts)
 
+    # 供语境义分析用的纯英文
+    article.setdefault("plain_en", " ".join(t for t in translated if t))
+
     for el, zh, en in zip(blocks, texts, translated):
         if not en:
             continue
@@ -205,7 +211,7 @@ def build_content(article: dict) -> str:
             if ch not in keep:
                 el.remove(ch)
         # 英文正文套上三层词汇标注（保留节点间的空白 tail，否则单词会粘在一起）
-        frag = lxml_html.fragment_fromstring(vocab.annotate(en), create_parent="div")
+        frag = lxml_html.fragment_fromstring(vocab.annotate(en, ctx), create_parent="div")
         el.text = frag.text
         for ch in list(frag):
             el.append(ch)

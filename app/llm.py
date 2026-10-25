@@ -158,6 +158,7 @@ def translate_title(title: str) -> str:
 
 
 def gloss(words: list[str], context: str = "") -> dict[str, str]:
+    """给词表里查不到的超纲词补中文释义（贴合语境）。"""
     words = [w for w in words if w]
     if not words:
         return {}
@@ -165,14 +166,31 @@ def gloss(words: list[str], context: str = "") -> dict[str, str]:
         return {}
     user = "单词：\n" + "\n".join(words) + "\n\n语境片段：\n" + (context or "")[:1200]
     raw = _chat(_prompt("gloss"), user, max_tokens=800)
+    return _parse_pairs(raw, words)
+
+
+def ctx_gloss(words: list[str], article: str) -> dict[str, str]:
+    """按整篇文章的语境给出词义，用来纠正 deal→买卖毒品 这类词典义误差。"""
+    words = [w for w in words if w][:120]
+    if not words or config.LLM_PROVIDER == "mock":
+        return {}
+    user = "单词：\n" + "\n".join(words) + "\n\n文章：\n" + (article or "")[:6000]
+    try:
+        raw = _chat(_prompt("ctx_gloss"), user, max_tokens=900)
+    except Exception:
+        return {}
+    return _parse_pairs(raw, words)
+
+
+def _parse_pairs(raw: str, wanted: list[str]) -> dict[str, str]:
     out: dict[str, str] = {}
-    wanted = {w.lower() for w in words}
+    allow = {w.lower() for w in wanted}
     for line in raw.splitlines():
         if "|" not in line:
             continue
         w, _, zh = line.partition("|")
         w = w.strip().lower().strip("-•* ")
         zh = zh.strip()
-        if w in wanted and zh and len(zh) <= 20:
+        if w in allow and zh and len(zh) <= 20:
             out[w] = zh
     return out

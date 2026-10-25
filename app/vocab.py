@@ -161,11 +161,15 @@ def _span(word: str, tier: str, meaning: str) -> str:
     return f'<span class="w {cls}"{attrs}>{text}{inner}</span>'
 
 
-def annotate(text: str) -> str:
-    """把一段英文转成带三层标注的 HTML（保留原有空白与标点）。"""
+def annotate(text: str, ctx: dict[str, str] | None = None) -> str:
+    """把一段英文转成带三层标注的 HTML（保留原有空白与标点）。
+
+    ctx：语境义覆盖表 {小写词: 中文}，优先于词表里的词典义。
+    """
     vocab = get_vocab()
     if not vocab.loaded:
         return html.escape(text)
+    ctx = ctx or {}
     out: list[str] = []
     pos = 0
     for m in _WORD_RE.finditer(text):
@@ -176,6 +180,8 @@ def annotate(text: str) -> str:
         # 专有名词：首字母大写、且不在句首、且小写不在词典里 -> 当作普通词，不标注
         if tier == TIER_ADV and word[:1].isupper() and not _at_sentence_start(text, m.start()):
             tier, meaning = TIER_BASIC, ""
+        if tier in (TIER_CET6, TIER_ADV) and word.lower() in ctx:
+            meaning = ctx[word.lower()]
         out.append(_span(word, tier, meaning))
         pos = m.end()
     if pos < len(text):
@@ -190,6 +196,20 @@ def _at_sentence_start(text: str, idx: int) -> bool:
     if i < 0:
         return True
     return text[i] in ".!?。！？:"
+
+
+def ctx_targets(texts: list[str], limit: int = 120) -> list[str]:
+    """需要语境义的词：CET-6 与超纲词里出现过的（按出现次数排序）。"""
+    vocab = get_vocab()
+    counts: dict[str, int] = {}
+    for text in texts:
+        for m in _WORD_RE.finditer(text):
+            w = m.group(0)
+            tier, _ = vocab.classify(w)
+            if tier in (TIER_CET6, TIER_ADV):
+                lw = w.lower()
+                counts[lw] = counts.get(lw, 0) + 1
+    return [w for w, _ in sorted(counts.items(), key=lambda kv: -kv[1])[:limit]]
 
 
 def stats(text: str) -> dict:

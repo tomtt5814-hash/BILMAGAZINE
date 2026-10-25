@@ -103,7 +103,7 @@ def render_magazine(day: str, issue: int, headline: str, lede: str, articles: li
                 "pubdate_human": a.get("pubdate_human", ""),
                 "cover_data": a.get("cover_data") or _data_uri(a.get("cover_path")),
                 "caption": a.get("caption", "视频封面"),
-                "paragraphs": [vocab.annotate(p) for p in paras],
+                "paragraphs": [vocab.annotate(p, a.get("ctx_gloss")) for p in paras],
                 "paragraphs_zh": [html_escape(z) for z in zh],
                 "dropcap": dropcap,
                 "pull": a.get("pull") or _pull_quote(paras),
@@ -155,6 +155,7 @@ def render_magazine(day: str, issue: int, headline: str, lede: str, articles: li
                 "orig_url": a.get("orig_url", ""),
                 "full_page": a.get("full_page", ""),
                 "clone_html": a.get("clone_html", ""),
+                "ctx_gloss": a.get("ctx_gloss") or {},
                 "rpid": a.get("rpid") or "",
                 "caption": a.get("caption", "视频封面"),
             }

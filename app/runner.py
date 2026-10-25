@@ -381,16 +381,21 @@ def _process_wechat(run: dict, target: dict) -> dict | None:
     # 生成「翻译克隆页」：保留原文排版与图片，正文换成英文，中文藏在下面
     clone_url = ""
     clone_html = ""
+    ctx: dict[str, str] = {}
     try:
         from . import wechat_clone
 
         _set(item, run, state="rewrite", detail="生成翻译页（保留原文排版）")
-        clone_html = wechat_clone.build_content(art)
+        wechat_clone.build_content(art)  # 先跑一遍拿到全文英文
+        plain = art.get("plain_en", "")
+        ctx = llm.ctx_gloss(vocab.ctx_targets([plain]), plain)
+        clone_html = wechat_clone.build_content(art, ctx)
         wechat_clone.save_clone(key, wechat_clone.build_clone(art))
         clone_url = f"/wx/{key.replace(':', '_')}"
     except Exception:
         clone_url = ""
         clone_html = ""
+        ctx = {}
 
     _set(item, run, state="done", detail="完成")
     return {
@@ -407,6 +412,7 @@ def _process_wechat(run: dict, target: dict) -> dict | None:
         "orig_url": art["url"],
         "full_page": clone_url,
         "clone_html": clone_html,
+        "ctx_gloss": ctx,
         "caption": f"{art.get('account','')}《{art['title']}》",
         "demo": rewritten.get("note", ""),
     }
@@ -527,6 +533,20 @@ def _generate_magazine(run: dict, articles: list[dict]) -> None:
                 a["paragraphs_zh"] = llm.translate_paragraphs(
                     magazine.paragraphs_of(a.get("body", ""))
                 )
+    except Exception:
+        pass
+
+    # 语境义：把整篇里出现过的 CET-6 / 超纲词交给模型按上下文定一次义
+    try:
+        for a in articles:
+            if a.get("ctx_gloss") or a.get("clone_html"):
+                continue
+            body_text = a.get("body", "")
+            if not body_text:
+                continue
+            words = vocab.ctx_targets([body_text])
+            if words:
+                a["ctx_gloss"] = llm.ctx_gloss(words, body_text)
     except Exception:
         pass
 
