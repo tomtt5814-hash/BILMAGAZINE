@@ -278,6 +278,38 @@ def _target_from_info(info: dict, processed: dict) -> dict:
     }
 
 
+def _target_words(duration_s: int, transcript_chars: int) -> tuple[int, str, str]:
+    """按视频时长 + 信息密度决定篇幅。返回 (目标词数, 密度说明, 时长说明)。"""
+    minutes = max(1.0, (duration_s or 0) / 60)
+    density = transcript_chars / minutes if transcript_chars else 0
+
+    if minutes <= 5:
+        base = 300
+    elif minutes <= 15:
+        base = 420
+    elif minutes <= 30:
+        base = 520
+    elif minutes <= 60:
+        base = 620
+    else:
+        base = 720
+
+    if density >= 300:
+        adj, note = 120, "很高（信息密集）"
+    elif density >= 200:
+        adj, note = 60, "较高"
+    elif density >= 120:
+        adj, note = 0, "中等"
+    else:
+        adj, note = -60, "偏低（口播冗余多）"
+
+    target = base + adj
+    # 素材不足以支撑时不要硬凑：约每 12 个中文字符支撑 1 个英文词
+    cap = max(240, transcript_chars // 12)
+    target = max(240, min(target, cap))
+    return target, note, f"{int(minutes)} 分钟"
+
+
 def _process_one(run: dict, target: dict) -> dict | None:
     bvid = target["bvid"]
     item = _item(run, bvid=bvid, title=target.get("title", ""), author=target.get("author", ""), state="check")
@@ -317,15 +349,21 @@ def _process_one(run: dict, target: dict) -> dict | None:
              detail=f"转写 {len(transcript)} 字，用时 {round(time.time()-t0,1)}s", seconds=round(time.time()-t0, 1))
 
     # LLM 两层
+    target_words, density_note, duration_note = _target_words(
+        int(info.get("duration") or 0), len(transcript)
+    )
     meta = {
         "title": info.get("title", ""),
         "author": info.get("author", ""),
         "pubdate": time.strftime("%Y-%m-%d", time.localtime(info.get("pubdate") or time.time())),
+        "target_words": target_words,
+        "density_note": density_note,
+        "duration_note": duration_note,
     }
-    _set(item, run, state="summarize", detail="生成中文摘要")
+    _set(item, run, state="summarize", detail=f"生成中文摘要（目标 {target_words} 词）")
     summary = llm.summarize(bvid, transcript, meta)
 
-    _set(item, run, state="rewrite", detail="改写成六级科普短文")
+    _set(item, run, state="rewrite", detail=f"改写成 {target_words} 词左右")
     rewritten = llm.rewrite(bvid, summary, meta)
 
     _set(item, run, state="done", detail="完成")

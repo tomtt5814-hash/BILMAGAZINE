@@ -65,25 +65,30 @@ def summarize(bvid: str, transcript: str, meta: dict) -> str:
     user = (
         f"视频标题：{meta.get('title', '')}\n"
         f"UP 主：{meta.get('author', '')}\n"
-        f"发布时间：{meta.get('pubdate', '')}\n\n"
+        f"发布时间：{meta.get('pubdate', '')}\n"
+        f"下一步要写成约 {meta.get('target_words', 420)} 词的英文短文，摘要请覆盖足够的具体细节。\n\n"
         f"转写原文：\n{transcript[:24000]}"
     )
-    return _chat(_prompt("summarize"), user, max_tokens=900)
+    return _chat(_prompt("summarize"), user, max_tokens=1200)
 
 
 def rewrite(bvid: str, summary: str, meta: dict) -> dict:
-    """返回 {title, body, lede?}"""
+    """返回 {title, body, lede?}. meta['target_words'] 决定篇幅。"""
     if config.LLM_PROVIDER == "mock":
         return {
             "title": _demo(bvid, "title"),
             "body": _demo(bvid, "body"),
             "note": "预设样例（未调用真实模型）",
         }
+    target = int(meta.get("target_words") or 420)
     user = (
+        f"目标词数：约 {target} 词（±10%）\n"
+        f"素材密度：{meta.get('density_note', '中等')}\n"
+        f"原视频时长：{meta.get('duration_note', '未知')}\n\n"
         f"中文摘要：\n{summary}\n\n"
         f"参考信息：UP 主 {meta.get('author', '')}，视频标题《{meta.get('title', '')}》"
     )
-    raw = _chat(_prompt("rewrite"), user, max_tokens=1200)
+    raw = _chat(_prompt("rewrite"), user, max_tokens=max(1200, target * 3))
     title, body = _split_title(raw)
     return {"title": title, "body": body, "note": ""}
 
