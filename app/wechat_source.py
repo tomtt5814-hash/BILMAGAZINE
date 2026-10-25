@@ -94,6 +94,7 @@ def fetch_article(url: str) -> dict:
         "published": int(ct) if ct.isdigit() else int(time.time()),
         "text": body,
         "cover": cover,
+        "html": h,
     }
 
 

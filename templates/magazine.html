@@ -238,7 +238,8 @@
         </div>
         {% if a.pull %}<blockquote class="story__pull">{{ a.pull }}</blockquote>{% endif %}
         <div class="story__links">
-          <a href="{{ a.url }}" target="_blank" rel="noopener">Watch the original on Bilibili →</a>
+          <a href="{{ a.url }}" target="_blank" rel="noopener">{% if a.orig_url %}Read the translated page →{% else %}Watch the original on Bilibili →{% endif %}</a>
+          {% if a.orig_url %}<a class="reply" href="{{ a.orig_url }}" target="_blank" rel="noopener">微信原文（含评论）→</a>{% endif %}
           {% if a.rpid %}<a class="reply" href="{{ a.url }}#reply{{ a.rpid }}" target="_blank" rel="noopener">Top discussion →</a>{% endif %}
         </div>
       </div>

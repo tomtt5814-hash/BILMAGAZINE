@@ -147,6 +147,14 @@ def dashboard(request: Request):
     )
 
 
+@app.get("/wx/{key}", response_class=HTMLResponse)
+def wechat_clone_page(key: str):
+    path = config.DATA_DIR / "wechat" / f"{key}.html"
+    if not path.exists():
+        return HTMLResponse("<h1>404</h1><p>这篇还没生成翻译页。</p>", status_code=404)
+    return HTMLResponse(path.read_text(encoding="utf-8"))
+
+
 @app.get("/magazine-thumb/{day}")
 def magazine_thumb(day: str):
     from fastapi.responses import FileResponse
