@@ -117,7 +117,19 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 .hero__thumb--empty{background:repeating-linear-gradient(45deg,#ece5d8,#ece5d8 10px,#e4dccd 10px,#e4dccd 20px)}
 
 .section-label{margin:34px 0 14px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}
+
+.running-bar{
+  display:flex;align-items:center;gap:10px;margin:18px 0 0;padding:11px 16px;
+  border:1px solid #e6d3b6;background:#fbf4e8;color:#7a5417;text-decoration:none;
+  font-size:12.5px;letter-spacing:.02em;
+}
+.running-bar:hover{background:#f8efdd}
+.running-bar .dot{
+  width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;
+  animation:pulse 1.2s ease-in-out infinite;
+}
+.running-bar .go{margin-left:auto;color:var(--accent);font-weight:600}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}
 .mcard{
   display:flex;flex-direction:column;border:1px solid var(--line);background:var(--card);
   text-decoration:none;color:inherit;overflow:hidden;

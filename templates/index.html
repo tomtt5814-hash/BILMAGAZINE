@@ -15,6 +15,14 @@
     </nav>
   </header>
 
+  {% if active_run %}
+  <a class="running-bar" href="/manage?run={{ active_run.id }}">
+    <span class="dot"></span>
+    正在生成 · 已开始 {{ active_run.started_at[11:16] }} · 已完成 {{ active_run.ok }} 篇
+    <span class="go">查看进度 →</span>
+  </a>
+  {% endif %}
+
   {% if mags %}
     {% set today = mags[0] %}
     <a class="hero" href="/magazine/{{ today.day }}?v={{ today.mtime }}">

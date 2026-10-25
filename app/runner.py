@@ -316,13 +316,22 @@ def _process_one(run: dict, target: dict) -> dict | None:
 def _generate_magazine(run: dict, articles: list[dict]) -> None:
     # 演示运行写到独立文件，绝不覆盖当天真实的一期
     day = "demo" if run.get("demo") else time.strftime("%Y-%m-%d")
+
+    # 先合并进当天已有的一期，再据此生成刊名/导语（手动单条不会把整期冲掉）
+    prev = store.read_json(config.MAGAZINE_DIR / f"daily-magazine-{day}.json", {})
+    if prev.get("articles"):
+        merged: dict[str, dict] = {a["bvid"]: a for a in prev["articles"] if a.get("bvid")}
+        for a in articles:
+            merged[a["bvid"]] = a
+        articles = list(merged.values())
+
     titles = [a["title"] for a in articles]
     try:
         headline = llm.make_headline(titles)
         lede = llm.make_lede(headline, titles)
     except Exception:
-        headline = "Today's Science Digest"
-        lede = "A daily briefing on what creators are explaining, in plain English."
+        headline = prev.get("headline") or "Today's Science Digest"
+        lede = prev.get("lede") or "A daily briefing on what creators are explaining, in plain English."
     bloggers = sorted({a.get("author", "") for a in articles if a.get("author")})
 
     # 补超纲词释义：词表查不到的交由 LLM 按语境补，结果缓存到 data/vocab/glossary.json
@@ -360,7 +369,7 @@ def _generate_magazine(run: dict, articles: list[dict]) -> None:
         lede=lede,
         articles=articles,
         bloggers=bloggers,
-        cold_fact="whisper.cpp 的 Vulkan 后端让 AMD 显卡也能跑本地转写——这条管线每天只在你睡觉时启动一次。",
+        cold_fact="SenseVoice 是非自回归模型，一次前向出一整句，所以 40 分钟视频 68 秒就转完了。",
         headline_zh=headline_zh,
     )
     path = store.save_magazine(day, html, meta)

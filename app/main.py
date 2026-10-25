@@ -96,10 +96,12 @@ def _next_run() -> str:
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
+    recent = store.list_runs(3)
+    active = next((r for r in recent if r.get("status") == "running"), None)
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"request": request, "mags": store.list_magazines()},
+        context={"request": request, "mags": store.list_magazines(), "active_run": active},
     )
 
 
@@ -162,13 +164,13 @@ def delete_subscription(uid: str):
 def trigger_run(bv_input: str = Form("")):
     bvs = [b for b in (source.parse_bvid(x) for x in bv_input.replace("，", ",").split(",")) if b]
     run = runner.start_run(trigger="manual", bvids=bvs or None)
-    return RedirectResponse(f"/?run={run['id']}", status_code=303)
+    return RedirectResponse(f"/manage?run={run['id']}", status_code=303)
 
 
 @app.post("/run-demo")
 def trigger_demo_run():
     run = runner.start_run(trigger="demo", demo=True)
-    return RedirectResponse(f"/?run={run['id']}", status_code=303)
+    return RedirectResponse(f"/manage?run={run['id']}", status_code=303)
 
 
 @app.get("/api/runs/{run_id}")
