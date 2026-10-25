@@ -47,15 +47,24 @@ app.mount("/static", StaticFiles(directory=str(ROOT / "static")), name="static")
 
 
 def _status() -> dict:
-    ok, info = transcribe.whisper_available()
+    cpp_ok, cpp_info = transcribe.whisper_available()
+    faster_ok = transcribe.faster_available()
+    if cpp_ok:
+        asr_label, asr_ok = "whisper.cpp", True
+    elif faster_ok:
+        asr_label, asr_ok = f"faster-whisper ({Path(str(config.FASTER_MODEL)).name})", True
+    else:
+        asr_label, asr_ok = "不可用", False
     return {
         "llm_provider": config.LLM_PROVIDER,
         "llm_key": bool(config.LLM_API_KEY),
         "llm_model": config.LLM_MODEL,
-        "whisper_ok": ok,
-        "whisper_info": info,
+        "asr_ok": asr_ok,
+        "asr_label": asr_label,
+        "whisper_ok": asr_ok,
+        "whisper_info": cpp_info,
         "cookie": bool(config.BILI_COOKIE),
-        "schedule": f"{config.SCHEDULE_TIME} 每日" if config.SCHEDULE_ENABLED else "未启用",
+        "schedule": f"{config.SCHEDULE_TIME} 每日" if config.SCHEDULE_ENABLED else "未启用（手动触发）",
         "next_run": _next_run(),
     }
 

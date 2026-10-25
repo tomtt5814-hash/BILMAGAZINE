@@ -17,8 +17,8 @@
     <span class="pill {{ 'ok' if status.llm_key and status.llm_provider != 'mock' else 'warn' }}">
       LLM：<b>{{ '真实 API · ' ~ status.llm_model if status.llm_key and status.llm_provider != 'mock' else '未配置（演示模式）' }}</b>
     </span>
-    <span class="pill {{ 'ok' if status.whisper_ok else 'warn' }}">
-      转写：<b>{{ 'whisper.cpp 就绪' if status.whisper_ok else '不可用' }}</b>
+    <span class="pill {{ 'ok' if status.asr_ok else 'warn' }}">
+      转写：<b>{{ status.asr_label }}</b>
     </span>
     <span class="pill {{ 'ok' if status.cookie else 'warn' }}">
       B 站登录态：<b>{{ '已配置 Cookie' if status.cookie else '未配置（列表接口会被风控）' }}</b>
@@ -56,7 +56,9 @@
                 </form>
               </td>
               <td>{{ '开启' if b.enabled else '关闭' }}</td>
-              <td style="text-align:right">
+              <td style="text-align:right;white-space:nowrap">
+                <a class="ghost-btn" href="https://space.bilibili.com/{{ b.uid }}/video"
+                   target="_blank" rel="noopener" title="在浏览器打开 TA 的空间，取最新一期 BV 号">空间 ↗</a>
                 <form class="inline" method="post" action="/subscriptions/{{ b.uid }}/toggle">
                   <button class="ghost tiny">{{ '关闭' if b.enabled else '开启' }}</button>
                 </form>
@@ -82,15 +84,16 @@
 
       <div class="card">
         <h2>运行</h2>
-        <form class="row" method="post" action="/run" style="margin-bottom:14px">
-          <div class="f"><label>手动处理单个视频（BV 号或链接）</label><input type="text" name="bv_input" placeholder="BV1yUHP6rEYD"></div>
+        <form class="row" method="post" action="/run" style="margin-bottom:10px">
+          <div class="f"><label>手动处理视频（可填多个，逗号分隔）</label><input type="text" name="bv_input" placeholder="BV1yUHP6rEYD,BV1GDHA6HEHu"></div>
           <button>处理</button>
         </form>
+        <p class="note" style="margin:0 0 14px">没配 B 站 Cookie 时，点订阅表里的「空间 ↗」在浏览器取最新一期 BV 号，粘到上面即可。</p>
         <div class="row">
           <form class="inline" method="post" action="/run"><button>跑一次全部订阅</button></form>
           <form class="inline" method="post" action="/run-demo"><button class="ghost">用演示数据生成一期</button></form>
         </div>
-        <p class="note">「补跑」= 点「跑一次全部订阅」，逻辑与 22:30 定时任务完全相同，已处理过的 BV 会自动跳过。</p>
+        <p class="note">「跑一次全部订阅」需要 B 站 Cookie 才能自动取最新一期；没配就用手动 BV，逻辑与定时任务完全相同，已处理过的会自动跳过。</p>
 
         <h2 style="margin-top:24px">本次运行</h2>
         <div class="log" id="log">
