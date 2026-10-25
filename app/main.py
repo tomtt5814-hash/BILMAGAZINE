@@ -182,6 +182,27 @@ def toggle_subscription(uid: str):
     return RedirectResponse("/", status_code=303)
 
 
+# 公众号 / RSS 的 uid 是网址，含斜杠走不了路径参数，统一改成表单传参
+@app.post("/subs/toggle")
+def toggle_sub(uid: str = Form(...)):
+    for b in store.load_subs():
+        if b["uid"] == uid:
+            store.update_sub(uid, enabled=not b.get("enabled", True))
+    return RedirectResponse("/manage", status_code=303)
+
+
+@app.post("/subs/n")
+def set_sub_n(uid: str = Form(...), recent_n: int = Form(...)):
+    store.update_sub(uid, recent_n=max(1, min(int(recent_n), 5)))
+    return RedirectResponse("/manage", status_code=303)
+
+
+@app.post("/subs/delete")
+def delete_sub(uid: str = Form(...)):
+    store.remove_sub(uid)
+    return RedirectResponse("/manage", status_code=303)
+
+
 @app.post("/subscriptions/{uid}/n")
 def set_recent_n(uid: str, recent_n: int = Form(...)):
     store.update_sub(uid, recent_n=max(1, min(int(recent_n), 5)))
@@ -208,6 +229,14 @@ def subscribe_wechat(account: str = Form(...), recent_n: int = Form(1)):
     name = account.strip()
     if name:
         store.add_sub(name, name, recent_n, kind="wechat")
+    return RedirectResponse("/manage", status_code=303)
+
+
+@app.post("/subscribe-rss")
+def subscribe_rss(feed_url: str = Form(...), name: str = Form(""), recent_n: int = Form(1)):
+    url = feed_url.strip()
+    if url.startswith("http"):
+        store.add_sub(url, name.strip() or url, recent_n, kind="rss")
     return RedirectResponse("/manage", status_code=303)
 
 

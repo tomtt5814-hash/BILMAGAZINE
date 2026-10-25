@@ -8,7 +8,7 @@ import time
 import traceback
 from pathlib import Path
 
-from . import clean, config, fetch, llm, magazine, source, store, transcribe, vocab, wechat_source
+from . import clean, config, fetch, llm, magazine, rss_source, source, store, transcribe, vocab, wechat_source
 
 RUNS: dict[str, dict] = {}
 _lock = threading.Lock()
@@ -220,6 +220,37 @@ def _collect_targets(run: dict, bvids: list[str] | None, demo: bool = False,
         run["note"] = "订阅列表为空"
         return targets
 
+    # RSS 订阅（公众号镜像）：条目自带全文，不需要再回微信抓
+    for sub in [b for b in subs if b.get("kind") == "rss"]:
+        want = int(sub.get("recent_n", 1) or 1)
+        try:
+            items = rss_source.fetch_feed(sub["uid"], max(want * 3, 10))
+        except Exception as exc:
+            run["note"] = f"RSS「{sub.get('name') or sub['uid']}」拉取失败：{exc}"
+            continue
+        cutoff = time.time() - config.WECHAT_MAX_AGE_DAYS * 86400
+        fresh = [it for it in items if (it.get("published") or 0) >= cutoff]
+        if not fresh:
+            newest = max((it.get("published") or 0) for it in items) if items else 0
+            when = time.strftime("%Y-%m-%d", time.localtime(newest)) if newest else "未知"
+            run["note"] = f"RSS「{sub.get('name') or sub['uid']}」没有 {config.WECHAT_MAX_AGE_DAYS} 天内的新文（最新 {when}）"
+            continue
+        for it in fresh[:want]:
+            targets.append({
+                "kind": "wechat", "url": it["url"], "key": it["id"],
+                "title": it["title"], "author": sub.get("name", ""),
+                "article": {
+                    "id": it["id"], "url": it["url"], "title": it["title"],
+                    "account": sub.get("name", ""),
+                    "author": "",
+                    "published": it["published"],
+                    "html": it["html"],
+                    "text": rss_source.html_to_text(it["html"]),
+                },
+                "skip": it["id"] in processed,
+            })
+    subs = [b for b in subs if b.get("kind", "bili") not in ("wechat", "rss")]
+
     # 公众号订阅：搜狗发现最新文章（索引可能滞后，所以只收最近几天的）
     for sub in [b for b in subs if b.get("kind") == "wechat"]:
         want = int(sub.get("recent_n", 1) or 1)
@@ -359,8 +390,13 @@ def _process_wechat(run: dict, target: dict) -> dict | None:
     key = target.get("key") or wechat_source.article_id(target["url"])
     item = _item(run, bvid=key, title="", author="", state="check", detail="抓取公众号文章")
 
-    art = wechat_source.fetch_article(target["url"])
-    text = art.get("text", "")
+    art = target.get("article") or wechat_source.fetch_article(target["url"])
+    if not art.get("account"):
+        art["account"] = target.get("author", "")
+    text = art.get("text") or ""
+    if not text and art.get("html"):
+        text = rss_source.html_to_text(art["html"])
+        art["text"] = text
     if len(text) < 200:
         raise RuntimeError("公众号正文过短，可能需要在浏览器里打开一次")
 

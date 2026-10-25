@@ -52,21 +52,24 @@
               <td>{{ b.name }}{% if b.kind == 'wechat' %} <span style="color:#6d665a;font-size:11px">公众号</span>{% endif %}</td>
               <td style="color:#6d665a">{{ b.uid }}</td>
               <td>
-                <form class="inline" method="post" action="/subscriptions/{{ b.uid }}/n">
+                <form class="inline" method="post" action="/subs/n">
+                  <input type="hidden" name="uid" value="{{ b.uid }}">
                   <input type="number" name="recent_n" value="{{ b.recent_n }}" min="1" max="5"
                          style="width:64px" onchange="this.form.submit()">
                 </form>
               </td>
               <td>{{ '开启' if b.enabled else '关闭' }}</td>
               <td style="text-align:right;white-space:nowrap">
-                {% if b.kind != 'wechat' %}
+                {% if b.kind not in ('wechat', 'rss') %}
                 <a class="ghost-btn" href="https://space.bilibili.com/{{ b.uid }}/video"
                    target="_blank" rel="noopener" title="在浏览器打开 TA 的空间，取最新一期 BV 号">空间 ↗</a>
                 {% endif %}
-                <form class="inline" method="post" action="/subscriptions/{{ b.uid }}/toggle">
+                <form class="inline" method="post" action="/subs/toggle">
+                  <input type="hidden" name="uid" value="{{ b.uid }}">
                   <button class="ghost tiny">{{ '关闭' if b.enabled else '开启' }}</button>
                 </form>
-                <form class="inline" method="post" action="/subscriptions/{{ b.uid }}/delete">
+                <form class="inline" method="post" action="/subs/delete">
+                  <input type="hidden" name="uid" value="{{ b.uid }}">
                   <button class="ghost tiny">删除</button>
                 </form>
               </td>
@@ -89,6 +92,12 @@
           <div class="f"><label>公众号名称</label><input type="text" name="account" placeholder="差评X.PIN" required></div>
           <div style="width:90px"><label>篇数</label><input type="number" name="recent_n" value="1" min="1" max="5"></div>
           <button class="ghost">订阅公众号</button>
+        </form>
+        <form class="row" method="post" action="/subscribe-rss" style="margin-top:12px">
+          <div class="f"><label>RSS 订阅（公众号镜像，推荐）</label><input type="text" name="feed_url" placeholder="https://wechat2rss.xlab.app/feed/8d839....xml" required></div>
+          <div class="f"><label>备注名</label><input type="text" name="name" placeholder="差评"></div>
+          <div style="width:90px"><label>篇数</label><input type="number" name="recent_n" value="1" min="1" max="5"></div>
+          <button class="ghost">订阅 RSS</button>
         </form>
         <p class="note">公众号走搜狗微信发现最新文章，可能被限流；也可以直接把 <code>mp.weixin.qq.com/s/...</code> 链接粘到下面的「手动处理视频」。</p>
       </div>

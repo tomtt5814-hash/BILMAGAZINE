@@ -209,7 +209,10 @@ def build_content(article: dict, ctx: dict[str, str] | None = None) -> str:
     doc = lxml_html.fromstring(raw)
     root = doc.get_element_by_id("js_content", None)
     if root is None:
-        raise ValueError("找不到 js_content")
+        # RSS 里的正文结构是普通的 <p>/<div>，没有 js_content 容器
+        root = doc.find(".//body") if doc.find(".//body") is not None else doc
+    if root is None:
+        raise ValueError("找不到正文")
 
     for s in list(root.iter("script", "style")):
         s.drop_tree()
