@@ -403,6 +403,7 @@ def _process_wechat(run: dict, target: dict) -> dict | None:
         "cover_path": str(cover_path) if cover_path.exists() else "",
         "url": clone_url or art["url"],
         "orig_url": art["url"],
+        "full_page": clone_url,
         "caption": f"{art.get('account','')}《{art['title']}》",
         "demo": rewritten.get("note", ""),
     }

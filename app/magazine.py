@@ -110,6 +110,7 @@ def render_magazine(day: str, issue: int, headline: str, lede: str, articles: li
                 "vocab_stats": vocab.stats(" ".join(paras)),
                 "url": a.get("url", ""),
                 "orig_url": a.get("orig_url", ""),
+                "full_page": a.get("full_page", ""),
                 "rpid": a.get("rpid") or "",
                 "icon_svg": ICONS[ICON_ORDER[i % len(ICON_ORDER)]],
             }
@@ -151,6 +152,7 @@ def render_magazine(day: str, issue: int, headline: str, lede: str, articles: li
                 "cover_path": str(a.get("cover_path") or ""),
                 "url": a.get("url", ""),
                 "orig_url": a.get("orig_url", ""),
+                "full_page": a.get("full_page", ""),
                 "rpid": a.get("rpid") or "",
                 "caption": a.get("caption", "视频封面"),
             }

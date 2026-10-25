@@ -15,7 +15,7 @@ import re
 
 from lxml import etree, html as lxml_html
 
-from . import config, llm
+from . import config, llm, vocab
 
 SKIP_TAGS = {"script", "style", "svg", "iframe", "video", "audio"}
 
@@ -34,6 +34,19 @@ h1.art-title{font-size:22px;line-height:1.4;margin:0 0 10px;font-weight:600}
 .zh-orig{display:none}
 body.show-zh .zh-orig{display:block;color:#8f8a80;font-size:14.5px;line-height:1.8;
  border-left:2px solid #e6e0d4;padding-left:10px;margin-top:6px}
+.w{font-style:normal}
+.w-basic{font-weight:500;color:inherit}
+.w-adv{font-weight:400;color:inherit}
+.w-cet6{color:#1f5fa8;cursor:pointer;border-bottom:1px dotted rgba(31,95,168,.45)}
+.w-cet6:hover{border-bottom-color:#1f5fa8}
+.w .zh{display:none;font-family:ui-sans-serif,sans-serif;font-size:12px;font-weight:400;
+ color:#4a7aa8;padding-left:2px}
+.w .zh:before{content:"（"}
+.w .zh:after{content:"）"}
+.w-adv .zh{color:#8a8072;font-size:11.5px}
+.w-cet6.on .zh{display:inline}
+body.show-cet6 .w-cet6 .zh{display:inline}
+body.show-adv .w-adv .zh{display:inline}
 .tctl{position:fixed;right:16px;bottom:16px;display:flex;gap:6px;padding:7px;background:rgba(255,255,255,.96);
  border:1px solid #e2ddd2;box-shadow:0 2px 10px rgba(0,0,0,.08)}
 .tbtn{font:12px ui-sans-serif,sans-serif;padding:5px 10px;border:1px solid #ddd4c4;background:#fff;color:#6b6459;cursor:pointer}
@@ -44,12 +57,19 @@ body.show-zh .zh-orig{display:block;color:#8f8a80;font-size:14.5px;line-height:1
 <p class="art-meta">%(author)s · %(account)s · %(date)s · <a href="%(url)s" target="_blank" rel="noopener">微信原文（含评论）↗</a></p>
 <div class="content">%(content)s</div>
 </div>
-<div class="tctl"><button class="tbtn">显示中文原文</button></div>
+<div class="tctl">
+  <button class="tbtn" data-toggle="zh">显示中文原文</button>
+  <button class="tbtn" data-toggle="cet6">CET-6 释义</button>
+  <button class="tbtn" data-toggle="adv">超纲词释义</button>
+</div>
 <script>
-document.querySelector('.tbtn').addEventListener('click', function(){
-  var on = this.classList.toggle('on');
-  document.body.classList.toggle('show-zh', on);
-  this.textContent = on ? '隐藏中文原文' : '显示中文原文';
+document.querySelectorAll('.tbtn').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var key = this.getAttribute('data-toggle');
+    var on = this.classList.toggle('on');
+    document.body.classList.toggle('show-' + key, on);
+    if (key === 'zh') this.textContent = on ? '隐藏中文原文' : '显示中文原文';
+  });
 });
 </script>
 </body></html>
@@ -170,7 +190,11 @@ def build_clone(article: dict) -> str:
         for ch in list(el):
             if ch not in keep:
                 el.remove(ch)
-        el.text = en
+        # 英文正文套上三层词汇标注（注意保留节点间的空白 tail，否则单词会粘在一起）
+        frag = lxml_html.fragment_fromstring(vocab.annotate(en), create_parent="div")
+        el.text = frag.text
+        for ch in list(frag):
+            el.append(ch)
         span = etree.SubElement(el, "span")
         span.set("class", "zh-orig")
         span.text = zh
