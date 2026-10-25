@@ -15,8 +15,9 @@
 | 22:30 定时 + 补跑 | ✅ 可用 |
 | `processed.json` 去重（原子写 + 损坏自愈） | ✅ 可用 |
 | 单视频元信息 / 封面下载 | ✅ 可用（免登录） |
-| 本地转写（faster-whisper，CPU int8） | ✅ 可用，实测 **7–8 倍实时** |
+| 本地转写（SenseVoice-Small ONNX，CPU） | ✅ 可用，实测 **40x 实时**（43 分钟视频 68 秒） |
 | 中文摘要 + 六级改写（DeepSeek） | ✅ 可用 |
+| 双语（标题 + 逐段中文） | ✅ 可用，右下角「双语」按钮 |
 | 自动取四个 UP 主的最新一期 | ✅ 借本机浏览器的登录态（`bsk` CLI），**不需要 Cookie** |
 | 杂志渲染（自包含 HTML，封面内联） | ✅ 可用 |
 | V2 三层词汇（CET-6 / 正常 / 超纲）+ 两个按钮 | ✅ 可用 |
@@ -129,17 +130,20 @@ B 站空间投稿接口对未登录请求返回 412 风控，但**你的浏览�
 
 用同一条 43.5 分钟音频 / 300 秒切片对照，跑在 RX 7650 GRE + RDNA3 上：
 
-| 引擎 | 300 秒音频 | 倍率 | 结论 |
-|---|---|---|---|
-| **faster-whisper small（CPU int8）** | **38.9 秒** | **7.7x** | 采用 |
-| whisper.cpp Vulkan（预编译包，flash attention） | 50.2 秒 | 6.0x | 慢 29%，已删除 |
-| Const-me DirectML（第三方参考值） | ≈43 分钟音频 325 秒 | ≈8x | 与 CPU 持平，无收益 |
+| 引擎 | 300 秒音频 | 倍率 | 中文表现 | 结论 |
+|---|---|---|---|---|
+| **SenseVoice-Small（ONNX，CPU）** | **7.4 秒** | **40.6x** | 中国互联网 / 陈俊杰 / 学养 / 泛突厥主义 全对 | **采用** |
+| faster-whisper small（CPU int8） | 36.8 秒 | 8.2x | 中国国联报 / 陈宗杰 / 血氧 / 犯突厥主义 | 回退方案 |
+| whisper.cpp Vulkan（预编译包） | 50.2 秒 | 6.0x | — | 慢于 CPU，已删除 |
+| Const-me DirectML（第三方参考值） | ≈43 分钟音频 325 秒 | ≈8x | — | 与 CPU 持平，无收益 |
 
-Vulkan 确实调用了显卡（日志可见 `AMD Radeon RX 7650 GRE`、`KHR_coopmat` 矩阵核心），
-但这张入门卡在 whisper.cpp 的 Vulkan 后端上跑不过 CPU 的 int8 多线程实现。
-ROCm（gfx110X）包未尝试：体积 177MB、绑定架构，按此结果预期收益有限。
+真实端到端：43.5 分钟视频用 SenseVoice 转写 **67.9 秒**（Whisper 是 324 秒），四篇合计约 2 分钟。
 
-**所以这台机器上转写就走 CPU，8x 实时：四个 UP 主约 11 分钟，够用。**
+为什么 SenseVoice 更快更准：它是非自回归结构，一次前向出整句，不像 Whisper 逐 token 解码；
+且训练数据里中文占比高。代价是对长音频不友好，所以配了能量 VAD 切段（每段 ≤28 秒）。
+
+模型：`tools/sensevoice/model.int8.onnx`（229MB）+ `tokens.txt`，来自
+`csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17`。
 
 ## 几个设计取舍
 

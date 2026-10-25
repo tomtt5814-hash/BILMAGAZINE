@@ -51,7 +51,9 @@ def _status() -> dict:
 
     cpp_ok, cpp_info = transcribe.whisper_available()
     faster_ok = transcribe.faster_available()
-    if cpp_ok:
+    if transcribe.sensevoice_available():
+        asr_label, asr_ok = "sensevoice-small (ONNX)", True
+    elif cpp_ok:
         asr_label, asr_ok = "whisper.cpp", True
     elif faster_ok:
         asr_label, asr_ok = f"faster-whisper ({Path(str(config.FASTER_MODEL)).name})", True

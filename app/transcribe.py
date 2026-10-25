@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import time
@@ -55,6 +56,79 @@ def whisper_available() -> tuple[bool, str]:
     if not model.exists():
         return False, f"未找到模型文件 {model}"
     return True, str(exe)
+
+
+def sensevoice_dir() -> Path:
+    return config.ROOT / "tools" / "sensevoice"
+
+
+def sensevoice_available() -> bool:
+    d = sensevoice_dir()
+    return (d / "model.int8.onnx").exists() and (d / "tokens.txt").exists()
+
+
+def _split_on_silence(audio, sr: int = 16000, max_len: float = 28.0, min_gap: float = 0.45):
+    """按能量切段（SenseVoice 适合短句输入）。"""
+    import numpy as np
+
+    frame = 400  # 25ms
+    n = len(audio) // frame
+    rms = np.array([np.sqrt(np.mean(audio[i * frame:(i + 1) * frame] ** 2) + 1e-9) for i in range(n)])
+    thr = max(0.006, float(np.percentile(rms, 25)) * 1.6)
+    segs, start, silent_run = [], 0, 0
+    max_frames = int(max_len * sr / frame)
+    gap_frames = int(min_gap * sr / frame)
+    for i, v in enumerate(rms):
+        silent_run = silent_run + 1 if v < thr else 0
+        if (silent_run >= gap_frames or i - start >= max_frames) and i > start:
+            segs.append(audio[start * frame:i * frame])
+            start = i
+            silent_run = 0
+    if start < n:
+        segs.append(audio[start * frame:])
+    return [s for s in segs if len(s) > sr * 0.3]
+
+
+_JUNK_HEAD = re.compile(r"^(?:[A-Za-z]+[.。,，]\s*)+")
+_EMO = re.compile(r"<\|[^|]*\|>")
+
+
+def _clean_sensevoice(text: str) -> str:
+    text = _EMO.sub("", text)
+    text = _JUNK_HEAD.sub("", text)
+    text = re.sub(r"[。.]{2,}", "。", text)
+    text = re.sub(r"\s{2,}", " ", text)
+    return text.strip()
+
+
+def transcribe_sensevoice(audio: Path) -> dict:
+    """SenseVoice-Small（ONNX，CPU）。实测 40x 实时，中文 CER 明显优于 Whisper。"""
+    import sherpa_onnx
+
+    d = sensevoice_dir()
+    t0 = time.time()
+    rec = sherpa_onnx.OfflineRecognizer.from_sense_voice(
+        model=str(d / "model.int8.onnx"),
+        tokens=str(d / "tokens.txt"),
+        num_threads=config.WHISPER_THREADS,
+        use_itn=True,
+        debug=False,
+    )
+    audio_np = _load_audio_np(audio)
+    parts = []
+    for seg in _split_on_silence(audio_np):
+        s = rec.create_stream()
+        s.accept_waveform(16000, seg)
+        rec.decode_stream(s)
+        t = _clean_sensevoice(s.result.text or "")
+        if t:
+            parts.append(t)
+    elapsed = time.time() - t0
+    return {
+        "text": "\n".join(parts),
+        "engine": "sensevoice-small (onnx, cpu)",
+        "elapsed_s": round(elapsed, 1),
+    }
 
 
 def faster_available() -> bool:
@@ -163,14 +237,16 @@ def transcribe(bvid: str, client, info: dict | None = None) -> dict:
             raise TranscribeUnavailable("音频未下载")
 
         ok_cpp, _ = whisper_available()
-        if ok_cpp:
+        if sensevoice_available():
+            result = transcribe_sensevoice(audio)
+        elif ok_cpp:
             to_wav(audio, wav)
             result = transcribe_whisper(wav)
         elif faster_available():
             result = transcribe_faster(audio)
         else:
             raise TranscribeUnavailable(
-                "没有可用的转写引擎：whisper.cpp 未安装，faster-whisper 也未安装"
+                "没有可用的转写引擎：SenseVoice 模型缺失、whisper.cpp 未安装、faster-whisper 也未安装"
             )
         cache.parent.mkdir(parents=True, exist_ok=True)
         cache.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
