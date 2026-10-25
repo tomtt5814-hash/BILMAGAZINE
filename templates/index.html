@@ -24,6 +24,7 @@
           <span class="kicker__date">{{ today.day }} · 今天</span>
         </div>
         <h2 class="hero__title">{{ today.title }}</h2>
+        {% if today.title_zh %}<p class="hero__zh">{{ today.title_zh }}</p>{% endif %}
         {% if today.lede %}<p class="hero__lede">{{ today.lede }}</p>{% endif %}
         <div class="chips">
           {% for b in today.bloggers %}<span class="chip">{{ b }}</span>{% endfor %}
@@ -51,6 +52,7 @@
             {% if loop.index == 1 %}昨天 · {% elif loop.index == 2 %}前天 · {% endif %}{{ m.day }}
           </div>
           <h3 class="mcard__title">{{ m.title }}</h3>
+          {% if m.title_zh %}<p class="mcard__title-zh">{{ m.title_zh }}</p>{% endif %}
           <div class="mcard__meta">{{ m.count }} 篇{% if m.bloggers %} · {{ m.bloggers|join(' / ') }}{% endif %}</div>
         </div>
       </a>

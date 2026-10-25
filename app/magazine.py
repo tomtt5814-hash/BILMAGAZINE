@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import html
 import json
 import re
 from pathlib import Path
@@ -10,6 +11,8 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from . import config, vocab
+
+html_escape = html.escape
 
 TPL_DIR = Path(__file__).resolve().parent.parent / "templates"
 _env = Environment(
@@ -67,11 +70,18 @@ def _pull_quote(paragraphs: list[str]) -> str:
     return cands[0][1]
 
 
+def paragraphs_of(body: str) -> list[str]:
+    return _paragraphs(body)
+
+
 def render_magazine(day: str, issue: int, headline: str, lede: str, articles: list[dict],
-                    bloggers: list[str], cold_fact: str) -> tuple[str, dict]:
+                    bloggers: list[str], cold_fact: str, headline_zh: str = "") -> tuple[str, dict]:
     prepared = []
     for i, a in enumerate(articles):
         paras = _paragraphs(a.get("body", ""))
+        zh = list(a.get("paragraphs_zh") or [])
+        if len(zh) < len(paras):
+            zh = zh + [""] * (len(paras) - len(zh))
         dropcap = ""
         if paras:
             first = paras[0]
@@ -79,15 +89,18 @@ def render_magazine(day: str, issue: int, headline: str, lede: str, articles: li
             if m and m.start() == 0:
                 dropcap = first[0]
                 paras[0] = first[1:]
+                zh[0] = zh[0][1:] if zh and zh[0] else ""
         prepared.append(
             {
                 "bvid": a.get("bvid", ""),
                 "title": a.get("title", ""),
+                "title_zh": a.get("title_zh", ""),
                 "author": a.get("author", ""),
                 "pubdate_human": a.get("pubdate_human", ""),
                 "cover_data": a.get("cover_data") or _data_uri(a.get("cover_path")),
                 "caption": a.get("caption", "视频封面"),
                 "paragraphs": [vocab.annotate(p) for p in paras],
+                "paragraphs_zh": [html_escape(z) for z in zh],
                 "dropcap": dropcap,
                 "pull": a.get("pull") or _pull_quote(paras),
                 "vocab_stats": vocab.stats(" ".join(paras)),
@@ -101,6 +114,7 @@ def render_magazine(day: str, issue: int, headline: str, lede: str, articles: li
             "day": day,
             "issue": f"{issue:03d}",
             "headline": headline,
+            "headline_zh": headline_zh,
             "lede": lede,
             "articles": prepared,
             "bloggers": bloggers,
@@ -112,6 +126,7 @@ def render_magazine(day: str, issue: int, headline: str, lede: str, articles: li
         "day": day,
         "issue": issue,
         "headline": headline,
+        "headline_zh": headline_zh,
         "lede": lede,
         "count": len(prepared),
         "bloggers": bloggers,
@@ -122,7 +137,9 @@ def render_magazine(day: str, issue: int, headline: str, lede: str, articles: li
             {
                 "bvid": a.get("bvid", ""),
                 "title": a.get("title", ""),
+                "title_zh": a.get("title_zh", ""),
                 "body": a.get("body", ""),
+                "paragraphs_zh": list(a.get("paragraphs_zh") or []),
                 "author": a.get("author", ""),
                 "pubdate_human": a.get("pubdate_human", ""),
                 "cover_path": str(a.get("cover_path") or ""),

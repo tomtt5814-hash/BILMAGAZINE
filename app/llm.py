@@ -122,8 +122,37 @@ def make_headline(titles: list[str]) -> str:
     return _chat(_prompt("headline"), user, max_tokens=80)
 
 
+def translate_paragraphs(paragraphs: list[str]) -> list[str]:
+    """逐段译成中文，用于双语对照。段数对不上时按原文段数补齐/截断。"""
+    if not paragraphs:
+        return []
+    if config.LLM_PROVIDER == "mock":
+        return ["" for _ in paragraphs]
+    payload = "\n\n".join(paragraphs)
+    try:
+        raw = _chat(_prompt("translate"), payload, max_tokens=2000)
+    except Exception:
+        return ["" for _ in paragraphs]
+    parts = [p.strip() for p in raw.replace("\r", "").split("\n\n") if p.strip()]
+    if len(parts) != len(paragraphs):
+        # 段数不一致时退化成按行对齐，宁可少也不要错位
+        lines = [l.strip() for l in raw.splitlines() if l.strip()]
+        parts = lines if len(lines) == len(paragraphs) else parts
+    if len(parts) < len(paragraphs):
+        parts += [""] * (len(paragraphs) - len(parts))
+    return parts[: len(paragraphs)]
+
+
+def translate_title(title: str) -> str:
+    if not title or config.LLM_PROVIDER == "mock":
+        return ""
+    try:
+        return _chat(_prompt("translate"), title, max_tokens=120).strip().replace("\n", " ")
+    except Exception:
+        return ""
+
+
 def gloss(words: list[str], context: str = "") -> dict[str, str]:
-    """给词表里查不到的超纲词补中文释义（贴合语境）。"""
     words = [w for w in words if w]
     if not words:
         return {}

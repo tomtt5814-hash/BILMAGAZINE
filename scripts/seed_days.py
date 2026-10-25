@@ -45,6 +45,7 @@ def main() -> None:
             articles=articles,
             bloggers=meta.get("bloggers") or [],
             cold_fact="whisper.cpp 的 Vulkan 后端让 AMD 显卡也能跑本地转写——这条管线每天只在你睡觉时启动一次。",
+            headline_zh=meta.get("headline_zh", ""),
         )
         store.save_magazine(day, html, new_meta)
         first_cover = next((a.get("cover_path") for a in articles if a.get("cover_path")), "")

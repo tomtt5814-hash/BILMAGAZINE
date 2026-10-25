@@ -73,6 +73,21 @@
     font-size:31px;line-height:1.2;letter-spacing:-.014em;margin:0;font-weight:600;
     max-width:24ch;text-wrap:balance;
   }
+  .story__title-zh{
+    font-family:"Songti SC","Noto Serif SC",Georgia,serif;
+    font-size:15px;line-height:1.6;color:var(--muted);margin:8px 0 0;max-width:32ch;
+  }
+  .masthead__zh{
+    font-family:"Songti SC","Noto Serif SC",Georgia,serif;
+    font-size:16px;line-height:1.6;color:var(--muted);margin:10px 0 0;max-width:40ch;
+  }
+  .zh-line{
+    display:none;max-width:64ch;margin:-6px 0 18px;
+    font-family:"Songti SC","Noto Serif SC","Microsoft YaHei",sans-serif;
+    font-size:14.5px;line-height:1.85;color:#6b6459;
+    padding-left:12px;border-left:2px solid #e2d9c8;
+  }
+  body.show-zh .zh-line{display:block}
   .story__byline{
     font-family:ui-sans-serif,-apple-system,"Segoe UI",sans-serif;
     font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
@@ -185,6 +200,7 @@
       <span>{{ m.articles|length }} STORIES</span>
     </div>
     <h1 class="masthead__title">{{ m.headline }}</h1>
+    {% if m.headline_zh %}<p class="masthead__zh">{{ m.headline_zh }}</p>{% endif %}
     <p class="masthead__lede">{{ m.lede }}</p>
     <ul class="masthead__sources">
       {% for b in m.bloggers %}<li>{{ b }}</li>{% endfor %}
@@ -201,6 +217,7 @@
       </div>
       <div class="story__body">
         <h2 class="story__title">{{ a.title }}</h2>
+        {% if a.title_zh %}<p class="story__title-zh">{{ a.title_zh }}</p>{% endif %}
         <p class="story__byline">{{ a.author }} {% if a.pubdate_human %}· <em>{{ a.pubdate_human }}</em>{% endif %}</p>
         {% if a.cover_data %}
         <figure class="story__fig">
@@ -215,6 +232,8 @@
             {% else %}
               <p>{{ p|safe }}</p>
             {% endif %}
+            {% set zh = a.paragraphs_zh[loop.index0] if a.paragraphs_zh|length > loop.index0 else '' %}
+            {% if zh %}<p class="zh-line">{{ zh }}</p>{% endif %}
           {% endfor %}
         </div>
         {% if a.pull %}<blockquote class="story__pull">{{ a.pull }}</blockquote>{% endif %}
@@ -234,6 +253,7 @@
 </div>
 
 <div class="vctl" role="group" aria-label="词汇辅助">
+  <button class="vbtn" data-toggle="zh" aria-pressed="false">双语</button>
   <button class="vbtn" data-toggle="cet6" aria-pressed="false">CET-6 释义</button>
   <button class="vbtn" data-toggle="adv" aria-pressed="false">超纲词释义</button>
 </div>

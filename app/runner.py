@@ -301,6 +301,7 @@ def _process_one(run: dict, target: dict) -> dict | None:
     return {
         "bvid": bvid,
         "title": rewritten.get("title", ""),
+        "title_zh": info.get("title", ""),
         "body": rewritten.get("body", ""),
         "summary": summary,
         "author": info.get("author", ""),
@@ -335,8 +336,23 @@ def _generate_magazine(run: dict, articles: list[dict]) -> None:
     except Exception:
         pass
 
+    # 逐段中文译文（双语对照用），只在缺的时候调用
+    try:
+        for a in articles:
+            if not a.get("paragraphs_zh"):
+                a["paragraphs_zh"] = llm.translate_paragraphs(
+                    magazine.paragraphs_of(a.get("body", ""))
+                )
+    except Exception:
+        pass
+
     prev = store.read_json(config.MAGAZINE_DIR / f"daily-magazine-{day}.json", {})
     issue = prev.get("issue") or (len(store.list_magazines()) + 1)
+    headline_zh = ""
+    try:
+        headline_zh = llm.translate_title(headline)
+    except Exception:
+        pass
     html, meta = magazine.render_magazine(
         day=day,
         issue=issue,
@@ -345,6 +361,7 @@ def _generate_magazine(run: dict, articles: list[dict]) -> None:
         articles=articles,
         bloggers=bloggers,
         cold_fact="whisper.cpp 的 Vulkan 后端让 AMD 显卡也能跑本地转写——这条管线每天只在你睡觉时启动一次。",
+        headline_zh=headline_zh,
     )
     path = store.save_magazine(day, html, meta)
     # 存一张缩略图给首页卡片用（第一篇文章的封面）

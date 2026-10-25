@@ -169,6 +169,7 @@ def list_magazines() -> list[dict]:
                 "day": day,
                 "file": f.name,
                 "title": meta.get("headline", f"每日杂志 {day}"),
+                "title_zh": meta.get("headline_zh", ""),
                 "lede": meta.get("lede", ""),
                 "issue": meta.get("issue", 0),
                 "count": meta.get("count", 0),
