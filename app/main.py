@@ -14,7 +14,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import config, runner, source, store, transcribe
+from . import config, runner, source, store, transcribe, vocab
 
 ROOT = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(ROOT / "templates"))
@@ -27,6 +27,7 @@ def _scheduled_run():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    vocab.load_gloss_cache()
     if config.SCHEDULE_ENABLED:
         hh, mm = (config.SCHEDULE_TIME.split(":") + ["0"])[:2]
         scheduler.add_job(

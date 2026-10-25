@@ -8,7 +8,7 @@ import time
 import traceback
 from pathlib import Path
 
-from . import clean, config, fetch, llm, magazine, source, store, transcribe
+from . import clean, config, fetch, llm, magazine, source, store, transcribe, vocab
 
 RUNS: dict[str, dict] = {}
 _lock = threading.Lock()
@@ -291,6 +291,18 @@ def _generate_magazine(run: dict, articles: list[dict]) -> None:
         headline = "Today's Science Digest"
         lede = "A daily briefing on what creators are explaining, in plain English."
     bloggers = sorted({a.get("author", "") for a in articles if a.get("author")})
+
+    # 补超纲词释义：词表查不到的交由 LLM 按语境补，结果缓存到 data/vocab/glossary.json
+    try:
+        texts = [a.get("body", "") for a in articles]
+        missing = vocab.missing_adv_words(texts)
+        if missing:
+            glosses = llm.gloss(missing, "\n".join(texts))
+            if glosses:
+                vocab.set_glosses(glosses)
+    except Exception:
+        pass
+
     prev = store.read_json(config.MAGAZINE_DIR / f"daily-magazine-{day}.json", {})
     issue = prev.get("issue") or (len(store.list_magazines()) + 1)
     html, meta = magazine.render_magazine(

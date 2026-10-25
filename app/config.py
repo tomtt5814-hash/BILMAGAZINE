@@ -47,6 +47,7 @@ TRANSCRIBE_ENGINE = _get("TRANSCRIBE_ENGINE", "auto").lower()
 WHISPER_DIR = ROOT / _get("WHISPER_DIR", "tools/whisper")
 WHISPER_MODEL = _get("WHISPER_MODEL", "ggml-small.bin")
 WHISPER_THREADS = int(_get("WHISPER_THREADS", "8") or 8)
+FASTER_MODEL = _get("FASTER_MODEL", "small")
 
 SCHEDULE_ENABLED = _get("SCHEDULE_ENABLED", "1") == "1"
 SCHEDULE_TIME = _get("SCHEDULE_TIME", "22:30")

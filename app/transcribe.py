@@ -57,6 +57,37 @@ def whisper_available() -> tuple[bool, str]:
     return True, str(exe)
 
 
+def faster_available() -> bool:
+    try:
+        import faster_whisper  # noqa: F401
+
+        return True
+    except Exception:
+        return False
+
+
+def transcribe_faster(audio: Path) -> dict:
+    """faster-whisper（CPU int8）。A 卡没有 ROCm 支持，这里就是纯 CPU 路线。"""
+    import os
+
+    os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+    from faster_whisper import WhisperModel
+
+    t0 = time.time()
+    model = WhisperModel(config.FASTER_MODEL, device="cpu", compute_type="int8")
+    segments, info = model.transcribe(
+        str(audio), language="zh", vad_filter=True, beam_size=5,
+        initial_prompt="以下是普通话的句子，内容为知识类视频讲解。",
+    )
+    parts = [seg.text.strip() for seg in segments if seg.text.strip()]
+    elapsed = time.time() - t0
+    return {
+        "text": "\n".join(parts),
+        "engine": f"faster-whisper ({config.FASTER_MODEL}, cpu-int8)",
+        "elapsed_s": round(elapsed, 1),
+    }
+
+
 def transcribe_whisper(wav: Path) -> dict:
     ok, info = whisper_available()
     if not ok:
@@ -111,8 +142,17 @@ def transcribe(bvid: str, client, info: dict | None = None) -> dict:
         wav = config.MEDIA_DIR / bvid / "audio.wav"
         if not audio.exists():
             raise TranscribeUnavailable("音频未下载")
-        to_wav(audio, wav)
-        result = transcribe_whisper(wav)
+
+        ok_cpp, _ = whisper_available()
+        if ok_cpp:
+            to_wav(audio, wav)
+            result = transcribe_whisper(wav)
+        elif faster_available():
+            result = transcribe_faster(audio)
+        else:
+            raise TranscribeUnavailable(
+                "没有可用的转写引擎：whisper.cpp 未安装，faster-whisper 也未安装"
+            )
         cache.parent.mkdir(parents=True, exist_ok=True)
         cache.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
         return result

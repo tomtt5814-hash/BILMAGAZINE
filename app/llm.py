@@ -120,3 +120,25 @@ def make_headline(titles: list[str]) -> str:
         return _demo("__issue__", "headline")
     user = "以下是今天几篇英文科普短文的标题：\n" + "\n".join(f"- {t}" for t in titles) + "\n\n给这一期起一个 4–9 个英文单词的刊名，体现共同主题，不要引号。"
     return _chat(_prompt("headline"), user, max_tokens=80)
+
+
+def gloss(words: list[str], context: str = "") -> dict[str, str]:
+    """给词表里查不到的超纲词补中文释义（贴合语境）。"""
+    words = [w for w in words if w]
+    if not words:
+        return {}
+    if config.LLM_PROVIDER == "mock":
+        return {}
+    user = "单词：\n" + "\n".join(words) + "\n\n语境片段：\n" + (context or "")[:1200]
+    raw = _chat(_prompt("gloss"), user, max_tokens=800)
+    out: dict[str, str] = {}
+    wanted = {w.lower() for w in words}
+    for line in raw.splitlines():
+        if "|" not in line:
+            continue
+        w, _, zh = line.partition("|")
+        w = w.strip().lower().strip("-•* ")
+        zh = zh.strip()
+        if w in wanted and zh and len(zh) <= 20:
+            out[w] = zh
+    return out

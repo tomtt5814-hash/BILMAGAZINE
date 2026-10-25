@@ -9,7 +9,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from . import config
+from . import config, vocab
 
 TPL_DIR = Path(__file__).resolve().parent.parent / "templates"
 _env = Environment(
@@ -87,9 +87,10 @@ def render_magazine(day: str, issue: int, headline: str, lede: str, articles: li
                 "pubdate_human": a.get("pubdate_human", ""),
                 "cover_data": a.get("cover_data") or _data_uri(a.get("cover_path")),
                 "caption": a.get("caption", "视频封面"),
-                "paragraphs": paras,
+                "paragraphs": [vocab.annotate(p) for p in paras],
                 "dropcap": dropcap,
                 "pull": a.get("pull") or _pull_quote(paras),
+                "vocab_stats": vocab.stats(" ".join(paras)),
                 "url": a.get("url", ""),
                 "rpid": a.get("rpid") or "",
                 "icon_svg": ICONS[ICON_ORDER[i % len(ICON_ORDER)]],
@@ -116,6 +117,7 @@ def render_magazine(day: str, issue: int, headline: str, lede: str, articles: li
         "bloggers": bloggers,
         "titles": [a["title"] for a in prepared],
         "bvids": [a["bvid"] for a in prepared],
+        "vocab": [a.get("vocab_stats") for a in prepared],
     }
     return html, meta
 
