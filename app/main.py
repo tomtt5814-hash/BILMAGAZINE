@@ -188,9 +188,19 @@ def delete_subscription(uid: str):
 
 @app.post("/run")
 def trigger_run(bv_input: str = Form("")):
-    bvs = [b for b in (source.parse_bvid(x) for x in bv_input.replace("，", ",").split(",")) if b]
-    run = runner.start_run(trigger="manual", bvids=bvs or None)
+    raw = [x.strip() for x in bv_input.replace("，", ",").split(",") if x.strip()]
+    wechat = [x for x in raw if "mp.weixin.qq.com" in x]
+    bvs = [b for b in (source.parse_bvid(x) for x in raw) if b]
+    run = runner.start_run(trigger="manual", bvids=bvs or None, wechat_urls=wechat or None)
     return RedirectResponse(f"/manage?run={run['id']}", status_code=303)
+
+
+@app.post("/subscribe-wechat")
+def subscribe_wechat(account: str = Form(...), recent_n: int = Form(1)):
+    name = account.strip()
+    if name:
+        store.add_sub(name, name, recent_n, kind="wechat")
+    return RedirectResponse("/manage", status_code=303)
 
 
 @app.post("/run-demo")

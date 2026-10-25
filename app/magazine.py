@@ -140,6 +140,7 @@ def render_magazine(day: str, issue: int, headline: str, lede: str, articles: li
         "articles": [
             {
                 "bvid": a.get("bvid", ""),
+                "key": a.get("key", "") or a.get("bvid", ""),
                 "title": a.get("title", ""),
                 "title_zh": a.get("title_zh", ""),
                 "body": a.get("body", ""),

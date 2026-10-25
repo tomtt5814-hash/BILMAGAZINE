@@ -8,7 +8,7 @@ import time
 import traceback
 from pathlib import Path
 
-from . import clean, config, fetch, llm, magazine, source, store, transcribe, vocab
+from . import clean, config, fetch, llm, magazine, source, store, transcribe, vocab, wechat_source
 
 RUNS: dict[str, dict] = {}
 _lock = threading.Lock()
@@ -60,7 +60,8 @@ def get_run(run_id: str) -> dict | None:
     return store.load_run(run_id)
 
 
-def start_run(trigger: str = "manual", bvids: list[str] | None = None, demo: bool = False) -> dict:
+def start_run(trigger: str = "manual", bvids: list[str] | None = None, demo: bool = False,
+              wechat_urls: list[str] | None = None) -> dict:
     run = {
         "id": store.new_run_id(),
         "trigger": trigger,
@@ -80,7 +81,7 @@ def start_run(trigger: str = "manual", bvids: list[str] | None = None, demo: boo
     with _lock:
         RUNS[run["id"]] = run
     store.save_run(run)
-    t = threading.Thread(target=_execute, args=(run, bvids, demo), daemon=True)
+    t = threading.Thread(target=_execute, args=(run, bvids, demo, wechat_urls), daemon=True)
     t.start()
     return run
 
@@ -109,9 +110,10 @@ def _set(item: dict, run: dict, **kw) -> None:
     store.save_run(run)
 
 
-def _execute(run: dict, bvids: list[str] | None, demo: bool = False) -> None:
+def _execute(run: dict, bvids: list[str] | None, demo: bool = False,
+             wechat_urls: list[str] | None = None) -> None:
     try:
-        targets = _collect_targets(run, bvids, demo)
+        targets = _collect_targets(run, bvids, demo, wechat_urls)
         run["total"] = len(targets)
         _recalc(run)
         if not targets:
@@ -146,7 +148,7 @@ def _execute(run: dict, bvids: list[str] | None, demo: bool = False) -> None:
                     run["ok"] += 1
                     if not run.get("demo"):
                         store.mark_processed(
-                            article["bvid"], title=article.get("title", ""),
+                            article.get("key") or article["bvid"], title=article.get("title", ""),
                             author=article.get("author", ""), day=time.strftime("%Y-%m-%d"),
                         )
             except Exception as exc:
@@ -172,10 +174,18 @@ def _execute(run: dict, bvids: list[str] | None, demo: bool = False) -> None:
         store.save_run(run)
 
 
-def _collect_targets(run: dict, bvids: list[str] | None, demo: bool = False) -> list[dict]:
+def _collect_targets(run: dict, bvids: list[str] | None, demo: bool = False,
+                     wechat_urls: list[str] | None = None) -> list[dict]:
     processed = store.load_processed()
     targets: list[dict] = []
     client = source.BiliClient()
+
+    if wechat_urls:
+        for url in wechat_urls:
+            key = wechat_source.article_id(url)
+            targets.append({"kind": "wechat", "url": url, "bvid": "", "key": key,
+                            "title": "", "author": "", "skip": key in processed})
+        return targets
 
     if demo:
         seed_file = config.DEMO_DIR / "seed.json"
@@ -208,6 +218,26 @@ def _collect_targets(run: dict, bvids: list[str] | None, demo: bool = False) -> 
     subs = [b for b in store.load_subs() if b.get("enabled", True)]
     if not subs:
         run["note"] = "订阅列表为空"
+        return targets
+
+    # 公众号订阅：搜狗发现最新文章（脆弱，失败就跳过该号）
+    for sub in [b for b in subs if b.get("kind") == "wechat"]:
+        want = int(sub.get("recent_n", 1) or 1)
+        try:
+            arts = wechat_source.search_account(sub["uid"], want)
+        except Exception:
+            arts = []
+        if not arts:
+            run["note"] = f"公众号「{sub.get('name') or sub['uid']}」没取到文章（搜狗可能限流）"
+            continue
+        for art in arts:
+            targets.append({
+                "kind": "wechat", "url": art["url"], "key": art["id"],
+                "title": art["title"], "author": art["account"] or sub.get("name", ""),
+                "skip": art["id"] in processed,
+            })
+    subs = [b for b in subs if b.get("kind", "bili") != "wechat"]
+    if not subs:
         return targets
 
     # 有 Cookie 走接口；没有就借浏览器登录态读空间页（会自动开合一个 Agent Window）
@@ -278,8 +308,12 @@ def _target_from_info(info: dict, processed: dict) -> dict:
     }
 
 
-def _target_words(duration_s: int, transcript_chars: int) -> tuple[int, str, str]:
-    """按视频时长 + 信息密度决定篇幅。返回 (目标词数, 密度说明, 时长说明)。"""
+def _target_words(duration_s: int, transcript_chars: int, chars_per_word: int = 12) -> tuple[int, str, str]:
+    """按视频时长 + 信息密度决定篇幅。返回 (目标词数, 密度说明, 时长说明)。
+
+    chars_per_word：口播转写冗余多，约 12 个中文字符才撑 1 个英文词；
+    书面文章（公众号）信息密度高，用 4 即可。
+    """
     minutes = max(1.0, (duration_s or 0) / 60)
     density = transcript_chars / minutes if transcript_chars else 0
 
@@ -304,13 +338,66 @@ def _target_words(duration_s: int, transcript_chars: int) -> tuple[int, str, str
         adj, note = -60, "偏低（口播冗余多）"
 
     target = base + adj
-    # 素材不足以支撑时不要硬凑：约每 12 个中文字符支撑 1 个英文词
-    cap = max(240, transcript_chars // 12)
+    # 素材不足以支撑时不要硬凑
+    cap = max(240, transcript_chars // chars_per_word)
     target = max(240, min(target, cap))
     return target, note, f"{int(minutes)} 分钟"
 
 
+def _process_wechat(run: dict, target: dict) -> dict | None:
+    """公众号文章：直接抓正文，没有下载与转写两步。"""
+    key = target.get("key") or wechat_source.article_id(target["url"])
+    item = _item(run, bvid=key, title="", author="", state="check", detail="抓取公众号文章")
+
+    art = wechat_source.fetch_article(target["url"])
+    text = art.get("text", "")
+    if len(text) < 200:
+        raise RuntimeError("公众号正文过短，可能需要在浏览器里打开一次")
+
+    cover_path = config.MEDIA_DIR / ("wx_" + key.replace(":", "_")) / "cover.jpg"
+    if not cover_path.exists():
+        wechat_source.download_cover(art.get("cover", ""), cover_path)
+
+    _set(item, run, state="clean", title=art["title"],
+         detail=f"正文 {len(text)} 字", engine="wechat article")
+
+    # 文章没有时长，按阅读速度折算（每 400 字约 1 分钟）
+    pseudo_duration = int(len(text) / 400 * 60)
+    target_words, density_note, duration_note = _target_words(pseudo_duration, len(text), chars_per_word=4)
+    meta = {
+        "title": art["title"],
+        "author": art.get("account", ""),
+        "pubdate": time.strftime("%Y-%m-%d", time.localtime(art.get("published") or time.time())),
+        "target_words": target_words,
+        "density_note": density_note,
+        "duration_note": duration_note + "（按篇幅折算）",
+    }
+    _set(item, run, state="summarize", detail=f"生成中文摘要（目标 {target_words} 词）")
+    summary = llm.summarize(key, text, meta)
+
+    _set(item, run, state="rewrite", detail=f"改写成 {target_words} 词左右")
+    rewritten = llm.rewrite(key, summary, meta)
+
+    _set(item, run, state="done", detail="完成")
+    return {
+        "bvid": "",
+        "key": key,
+        "title": rewritten.get("title", ""),
+        "title_zh": art["title"],
+        "body": rewritten.get("body", ""),
+        "summary": summary,
+        "author": art.get("account", ""),
+        "pubdate_human": meta["pubdate"],
+        "cover_path": str(cover_path) if cover_path.exists() else "",
+        "url": art["url"],
+        "caption": f"{art.get('account','')}《{art['title']}》",
+        "demo": rewritten.get("note", ""),
+    }
+
+
 def _process_one(run: dict, target: dict) -> dict | None:
+    if target.get("kind") == "wechat":
+        return _process_wechat(run, target)
     bvid = target["bvid"]
     item = _item(run, bvid=bvid, title=target.get("title", ""), author=target.get("author", ""), state="check")
 
@@ -389,9 +476,11 @@ def _generate_magazine(run: dict, articles: list[dict]) -> None:
     # 先合并进当天已有的一期，再据此生成刊名/导语（手动单条不会把整期冲掉）
     prev = store.read_json(config.MAGAZINE_DIR / f"daily-magazine-{day}.json", {})
     if prev.get("articles"):
-        merged: dict[str, dict] = {a["bvid"]: a for a in prev["articles"] if a.get("bvid")}
+        merged: dict[str, dict] = {}
+        for a in prev["articles"]:
+            merged[a.get("key") or a.get("bvid") or a.get("url", "")] = a
         for a in articles:
-            merged[a["bvid"]] = a
+            merged[a.get("key") or a.get("bvid") or a.get("url", "")] = a
         articles = list(merged.values())
 
     titles = [a["title"] for a in articles]

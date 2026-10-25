@@ -57,16 +57,17 @@ def save_subs(items: list[dict]) -> None:
     write_json(config.SUBS_FILE, {"bloggers": items})
 
 
-def add_sub(uid: str, name: str = "", recent_n: int = 1) -> dict:
+def add_sub(uid: str, name: str = "", recent_n: int = 1, kind: str = "bili") -> dict:
     items = load_subs()
     for b in items:
-        if b["uid"] == uid:
+        if b["uid"] == uid and b.get("kind", "bili") == kind:
             b["enabled"] = True
             save_subs(items)
             return b
     item = {
         "uid": uid,
-        "name": name or f"UP主 {uid}",
+        "kind": kind,
+        "name": name or (f"UP主 {uid}" if kind == "bili" else uid),
         "enabled": True,
         "recent_n": max(1, min(int(recent_n), 5)),
         "added_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
@@ -89,7 +90,6 @@ def remove_sub(uid: str) -> list[dict]:
     items = [b for b in load_subs() if b["uid"] != uid]
     save_subs(items)
     return items
-
 
 # ---------- 已处理记录 ----------
 
