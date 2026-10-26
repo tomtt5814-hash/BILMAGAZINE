@@ -52,6 +52,10 @@ WHISPER_MODEL = _get("WHISPER_MODEL", "ggml-small.bin")
 WHISPER_THREADS = int(_get("WHISPER_THREADS", "8") or 8)
 FASTER_MODEL = _get("FASTER_MODEL", "small")
 
+# 杂志里嵌 B 站热门评论：COMMENTS_ENABLED=0 关掉，COMMENTS_TOP_N 控制条数
+COMMENTS_ENABLED = _get("COMMENTS_ENABLED", "1") == "1"
+COMMENTS_TOP_N = int(_get("COMMENTS_TOP_N", "5") or 5)
+
 SCHEDULE_ENABLED = _get("SCHEDULE_ENABLED", "0") == "1"
 SCHEDULE_TIME = _get("SCHEDULE_TIME", "22:30")
 

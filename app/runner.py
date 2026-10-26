@@ -8,7 +8,20 @@ import time
 import traceback
 from pathlib import Path
 
-from . import clean, config, fetch, llm, magazine, rss_source, source, store, transcribe, vocab, wechat_source
+from . import (
+    clean,
+    comments,
+    config,
+    fetch,
+    llm,
+    magazine,
+    rss_source,
+    source,
+    store,
+    transcribe,
+    vocab,
+    wechat_source,
+)
 
 RUNS: dict[str, dict] = {}
 _lock = threading.Lock()
@@ -523,6 +536,11 @@ def _process_one(run: dict, target: dict) -> dict | None:
     rewritten = llm.rewrite(bvid, summary, meta)
 
     _set(item, run, state="done", detail="完成")
+    _set(item, run, state="comments", detail="抓 B 站热门评论")
+    try:
+        cmts = comments.fetch_top_comments(bvid, config.COMMENTS_TOP_N)
+    except Exception:
+        cmts = []
     return {
         "bvid": bvid,
         "title": rewritten.get("title", ""),
@@ -534,6 +552,7 @@ def _process_one(run: dict, target: dict) -> dict | None:
         "cover_path": str(cover_path) if cover_path and cover_path.exists() else "",
         "url": f"https://www.bilibili.com/video/{bvid}",
         "caption": f"{info.get('author','')}《{info.get('title','')}》封面",
+        "comments": cmts,
         "demo": rewritten.get("note", ""),
     }
 

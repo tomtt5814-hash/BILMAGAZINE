@@ -91,6 +91,7 @@
   .story__title-zh{
     font-family:"Songti SC","Noto Serif SC",Georgia,serif;
     font-size:15px;line-height:1.6;color:var(--muted);margin:8px 0 0;max-width:32ch;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
   }
   .masthead__zh{
     font-family:"Songti SC","Noto Serif SC",Georgia,serif;
@@ -205,6 +206,39 @@
   .story__links a:hover{opacity:.75}
   .story__links a.reply{margin-left:16px;color:var(--muted);border-bottom-color:var(--line)}
 
+  /* 返回键：固定左上 */
+  .backbar{
+    position:fixed;left:18px;top:16px;z-index:60;
+    font:500 12px/1 ui-sans-serif,-apple-system,"Segoe UI",sans-serif;
+    letter-spacing:.06em;color:var(--muted);text-decoration:none;
+    background:rgba(243,237,225,.88);border:1px solid var(--line);
+    padding:8px 12px;border-radius:999px;backdrop-filter:blur(6px);
+  }
+  .backbar:hover{color:var(--ink);border-color:#c9bfae}
+
+  /* B 站热评框 */
+  .talk{
+    margin:30px 0 4px;border:1px solid var(--line);border-radius:2px;
+    background:rgba(255,255,255,.42);padding:18px 20px 6px;
+  }
+  .talk__hd{
+    font:600 10px/1 ui-sans-serif,-apple-system,sans-serif;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--accent);margin:0 0 14px;
+  }
+  .talk__hd span{margin-left:10px;color:#a8a094;letter-spacing:.12em;font-weight:500}
+  .talk__list{list-style:none;margin:0;padding:0}
+  .talk__list li{padding:12px 0;border-top:1px solid rgba(0,0,0,.06)}
+  .talk__list li:first-child{border-top:0;padding-top:0}
+  .talk__text{margin:0 0 6px;font-size:calc(var(--fs-body, 18px) - 3px);line-height:1.72;color:var(--ink-soft)}
+  .talk__meta{margin:0;font:500 11px/1 ui-sans-serif,-apple-system,sans-serif;color:#a8a094;letter-spacing:.04em}
+  .talk__author{color:var(--muted)}
+  .talk__like{margin-left:12px;color:var(--accent)}
+  .talk__foot{margin:12px 0 10px;padding-top:10px;border-top:1px solid rgba(0,0,0,.06);
+    font:500 11px/1 ui-sans-serif,-apple-system,sans-serif;letter-spacing:.08em}
+  .talk__foot a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent);padding-bottom:1px}
+  .talk__foot a:hover{opacity:.75}
+  body.night .talk{background:rgba(255,255,255,.03)}
+
   /* ---------- 页脚 ---------- */
   .colophon{margin-top:22px;border-top:2px solid var(--ink);padding-top:22px}
   .coldfact{
@@ -236,7 +270,8 @@
   }
 </style>
 </head>
-<body>
+<body class="show-adv">
+  <a class="backbar" href="/" title="回到首页">← 返回</a>
 <div class="wrap">
   <header class="masthead">
     <div class="rule-thick"></div>
@@ -287,10 +322,26 @@
           {% endif %}
         </div>
         {% if not a.full_page and a.pull %}<blockquote class="story__pull">{{ a.pull }}</blockquote>{% endif %}
+        {% if a.comments %}
+        <section class="talk">
+          <p class="talk__hd">B 站热门讨论<span>{{ a.comments|length }} 条热评</span></p>
+          <ol class="talk__list">
+            {% for c in a.comments %}
+            <li>
+              <p class="talk__text">{{ c.text }}</p>
+              <p class="talk__meta"><span class="talk__author">{{ c.author }}</span><span class="talk__like">♥ {{ c.like }}</span></p>
+            </li>
+            {% endfor %}
+          </ol>
+          <p class="talk__foot">
+            <a href="{{ a.url }}" target="_blank" rel="noopener">在 B 站查看全部评论 →</a>
+          </p>
+        </section>
+        {% endif %}
         <div class="story__links">
           <a href="{{ a.url }}" target="_blank" rel="noopener">{% if a.orig_url %}Read the translated page →{% else %}Watch the original on Bilibili →{% endif %}</a>
           {% if a.orig_url %}<a class="reply" href="{{ a.orig_url }}" target="_blank" rel="noopener">微信原文（含评论）→</a>{% endif %}
-          {% if a.rpid %}<a class="reply" href="{{ a.url }}#reply{{ a.rpid }}" target="_blank" rel="noopener">Top discussion →</a>{% endif %}
+          {% if a.rpid and not a.comments %}<a class="reply" href="{{ a.url }}#reply{{ a.rpid }}" target="_blank" rel="noopener">Top discussion →</a>{% endif %}
         </div>
       </div>
     </article>
@@ -346,6 +397,16 @@
       try { fr.contentWindow.postMessage({type:'toggle', key:key, on:on}, '*'); } catch (e) {}
     });
   }
+
+  // 首屏就把「超纲词释义」打开（正文默认 show-adv）
+  (function(){
+    var b = document.querySelector('.vbtn[data-toggle="adv"]');
+    if (b) {
+      b.classList.add('on');
+      b.setAttribute('aria-pressed', 'true');
+      document.body.classList.add('show-adv');
+    }
+  })();
 
   document.querySelectorAll('.vbtn').forEach(function(btn){
     btn.addEventListener('click', function(){
