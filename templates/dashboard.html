@@ -170,7 +170,8 @@
 const params = new URLSearchParams(location.search);
 const runId = params.get('run');
 const logEl = document.getElementById('log');
-const LABEL = {queued:'排队',check:'检查',download:'下载',transcribe:'转写',clean:'清洗',summarize:'摘要',rewrite:'改写',done:'完成',skip:'跳过',fail:'失败'};
+const LABEL = {queued:'排队',check:'检查',download:'下载',transcribe:'转写',clean:'清洗',summarize:'摘要',rewrite:'改写',comments:'热评',done:'完成',skip:'跳过',fail:'失败'};
+let lastRun = null;
 
 function render(run){
   const items = (run.items||[]).map(it => `
@@ -186,15 +187,35 @@ function render(run){
     ${items || '<div class="empty">正在收集任务…</div>'}
     ${run.note ? `<div class="it"><span class="st">note</span><span class="ti" style="white-space:normal">${run.note}</span></div>` : ''}`;
 
-  // 进度条
-  const p = Math.max(0, Math.min(100, run.progress || 0));
+  // 进度条：服务端的百分比只在「步骤切换」时跳，长步骤中间靠这里按秒推进
+  lastRun = run;
+  paintBar();
+}
+
+function paintBar(){
+  if (!lastRun) return;
+  const run = lastRun;
+  const items = run.items || [];
+  const last = items.slice(-1)[0];
+  const total = run.total || items.length;
+  let p = Math.max(0, Math.min(100, run.progress || 0));
+  let waited = '';
+  if (run.status === 'running' && last && last.stage_started){
+    const el = Math.max(0, Date.now() / 1000 - Number(last.stage_started));
+    const span = Number(last.stage_span || 0);
+    // 指数逼近：前 10 秒涨得快，之后越来越慢，最多再走 span 的 85%
+    const ease = Math.min(0.85, 1 - Math.exp(-el / 30));
+    if (span > 0) p = p + span * ease;
+    waited = ` · 已 ${Math.round(el)}s`;
+  }
+  p = Math.round(Math.min(99, p));
   document.getElementById('pwrap').style.display = 'block';
-  document.getElementById('pfill').style.width = p + '%';
+  const fill = document.getElementById('pfill');
+  fill.style.width = p + '%';
+  fill.classList.toggle('anim', run.status === 'running');
   document.getElementById('ppct').textContent = p + '%';
-  const last = (run.items||[]).slice(-1)[0];
-  const total = run.total || (run.items||[]).length;
   document.getElementById('pstage').textContent = run.status === 'running'
-    ? `${LABEL[last && last.state] || '准备中'} · 第 ${(run.items||[]).length}/${total} 条`
+    ? `${LABEL[last && last.state] || '准备中'} · 第 ${items.length}/${total} 条${waited}`
     : (run.status === 'done' ? `完成 · 共 ${total} 条` : run.status);
 }
 
@@ -202,11 +223,12 @@ if (runId){
   const tick = async () => {
     const res = await fetch('/api/runs/' + runId);
     if (!res.ok) return;
-    const run = await res.json();
-    render(run);
-    if (run.status === 'running') setTimeout(tick, 1200);
+    lastRun = await res.json();
+    render(lastRun);
+    if (lastRun.status === 'running') setTimeout(tick, 1200);
     else setTimeout(() => { location.href = '/'; }, 1500);
   };
+  setInterval(paintBar, 500);   // 每半秒重画一次，让长步骤也看得出在动
   tick();
 }
 </script>

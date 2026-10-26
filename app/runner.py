@@ -117,8 +117,16 @@ def _item(run: dict, **kw) -> dict:
 
 
 def _set(item: dict, run: dict, **kw) -> None:
+    prev = item.get("state")
     item.update(kw)
     item["updated_at"] = _now()
+    # 步骤换了就记下开始时间 + 这一步还能涨多少个百分点，前端据此做「活」的进度条
+    if item.get("state") != prev:
+        item["stage_started"] = time.time()
+        cur = STEP_PROGRESS.get(item.get("state", "queued"), 0)
+        nxt = min([v for v in STEP_PROGRESS.values() if v > cur] or [100])
+        total = int(run.get("total") or 0) or len(run.get("items") or []) or 1
+        item["stage_span"] = max(0, round((nxt - cur) / total))
     _recalc(run)
     store.save_run(run)
 
