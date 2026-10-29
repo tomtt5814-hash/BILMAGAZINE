@@ -6,7 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from . import config
+from . import config, hidewin
 
 
 class DownloadError(Exception):
@@ -30,7 +30,7 @@ def download_audio(bvid: str, force: bool = False) -> Path:
         url,
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800,
-                          encoding="utf-8", errors="replace")
+                          encoding="utf-8", errors="replace", **hidewin.quiet_kwargs())
     files = sorted(dest.glob("audio.*"))
     if proc.returncode != 0 or not files:
         tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-3:]

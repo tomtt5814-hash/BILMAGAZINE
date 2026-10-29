@@ -255,6 +255,18 @@
     font-size:11px;letter-spacing:.1em;color:var(--muted);margin:0;
   }
 
+  /* ---------- 宽屏：正文占页面一半并居中；手机端不受影响 ---------- */
+  @media (min-width:1100px){
+    .wrap{max-width:none;width:clamp(1040px,50vw,1440px)}
+    .masthead__title{max-width:28ch}
+    .masthead__lede{max-width:62ch}
+    .masthead__zh{max-width:52ch}
+    .story__title{max-width:46ch}
+    .story__text>p,
+    .zh-line,
+    .wx-inline,
+    .wx-inline p,.wx-inline section{max-width:none}
+  }
   @media (max-width:720px){
     .wrap{padding:34px 22px 64px}
     .story{grid-template-columns:52px minmax(0,1fr);gap:18px;padding:40px 0}
@@ -265,7 +277,7 @@
   }
   @media print{
     body{background:#fff}
-    .wrap{padding:0;max-width:none}
+    .wrap{padding:0;max-width:none;width:auto}
     .story{break-inside:avoid}
   }
 </style>
@@ -355,7 +367,7 @@
 </div>
 
 <div class="vctl" role="group" aria-label="词汇辅助">
-  <button class="vbtn" id="tb-open" aria-expanded="false">工具箱</button>
+  <button class="vbtn" id="tb-open" aria-expanded="false" aria-controls="toolbox" aria-haspopup="true">工具箱</button>
   <button class="vbtn" data-toggle="zh" aria-pressed="false">双语</button>
   <button class="vbtn" data-toggle="cet6" aria-pressed="false">CET-6 释义</button>
   <button class="vbtn" data-toggle="adv" aria-pressed="false">超纲词释义</button>
@@ -398,6 +410,28 @@
     });
   }
 
+  // ---------- 浮层通用行为：点外部 / Esc 关闭 ----------
+  // 项目规范：所有非全屏的卡片、弹窗、浮层默认支持点击空白处关闭，
+  // 重复点击触发按钮同样可以关闭。批量状态开关（双语 / 释义）不是浮层，不参与。
+  var layers = [];
+  function dismissable(isOpen, inside, close){
+    layers.push({ isOpen: isOpen, inside: inside, close: close });
+  }
+  document.addEventListener('pointerdown', function(e){
+    for (var i = layers.length - 1; i >= 0; i--) {
+      var l = layers[i];
+      if (!l.isOpen()) continue;
+      if (l.inside && l.inside(e.target)) continue;
+      l.close(e);
+    }
+  }, true);
+  document.addEventListener('keydown', function(e){
+    if (e.key !== 'Escape') return;
+    for (var i = layers.length - 1; i >= 0; i--) {
+      if (layers[i].isOpen()) { layers[i].close(e); return; }
+    }
+  });
+
   // 首屏就把「超纲词释义」打开（正文默认 show-adv）
   (function(){
     var b = document.querySelector('.vbtn[data-toggle="adv"]');
@@ -408,7 +442,7 @@
     }
   })();
 
-  document.querySelectorAll('.vbtn').forEach(function(btn){
+  document.querySelectorAll('.vbtn[data-toggle]').forEach(function(btn){
     btn.addEventListener('click', function(){
       var key = btn.getAttribute('data-toggle');
       var on = btn.classList.toggle('on');
@@ -420,9 +454,16 @@
 
   document.addEventListener('click', function(e){
     var w = e.target.closest ? e.target.closest('.w-cet6') : null;
-    if (w && !w.classList.contains('on')) { w.classList.add('on'); }
-    else if (w) { w.classList.remove('on'); }
+    if (!w) return;
+    var wasOn = w.classList.contains('on');
+    document.querySelectorAll('.w-cet6.on').forEach(function(x){ x.classList.remove('on'); });
+    if (!wasOn) w.classList.add('on');
   });
+  dismissable(
+    function(){ return !!document.querySelector('.w-cet6.on'); },
+    function(t){ return !!(t && t.closest && t.closest('.w-cet6.on')); },
+    function(){ document.querySelectorAll('.w-cet6.on').forEach(function(x){ x.classList.remove('on'); }); }
+  );
 
   // ---------- 工具箱：主题 + 三组字号 ----------
   var KEY = 'bilmag.prefs';
@@ -448,13 +489,22 @@
 
   var tb = document.getElementById('toolbox');
   var openBtn = document.getElementById('tb-open');
+  function setToolbox(open){
+    if (!tb || !openBtn) return;
+    if (open) tb.removeAttribute('hidden'); else tb.setAttribute('hidden', '');
+    openBtn.classList.toggle('on', open);
+    openBtn.setAttribute('aria-expanded', String(open));
+  }
   if (openBtn && tb){
-    openBtn.addEventListener('click', function(){
-      var show = tb.hasAttribute('hidden');
-      if (show) tb.removeAttribute('hidden'); else tb.setAttribute('hidden', '');
-      openBtn.classList.toggle('on', show);
-      openBtn.setAttribute('aria-expanded', String(show));
-    });
+    openBtn.addEventListener('click', function(){ setToolbox(tb.hasAttribute('hidden')); });
+    dismissable(
+      function(){ return !tb.hasAttribute('hidden'); },
+      function(t){ return tb.contains(t) || openBtn.contains(t); },
+      function(e){
+        setToolbox(false);
+        if (e && e.type === 'keydown') openBtn.focus();
+      }
+    );
   }
   document.querySelectorAll('.tb-seg').forEach(function(b){
     b.addEventListener('click', function(){

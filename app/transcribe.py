@@ -9,7 +9,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from . import config
+from . import config, hidewin
 
 
 class TranscribeUnavailable(Exception):
@@ -32,7 +32,8 @@ def to_wav(src: Path, dst: Path) -> Path:
     """转 16kHz 单声道 wav，whisper.cpp 要求。"""
     dst.parent.mkdir(parents=True, exist_ok=True)
     cmd = [_ffmpeg(), "-y", "-i", str(src), "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", str(dst)]
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800,
+                          **hidewin.quiet_kwargs())
     if proc.returncode != 0 or not dst.exists():
         raise TranscribeUnavailable(f"ffmpeg 转码失败：{proc.stderr[-300:]}")
     return dst
@@ -151,7 +152,7 @@ def _load_audio_np(path: Path):
     proc = subprocess.run(
         [_ffmpeg(), "-y", "-loglevel", "error", "-i", str(path),
          "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", str(tmp)],
-        capture_output=True, text=True, timeout=1800,
+        capture_output=True, text=True, timeout=1800, **hidewin.quiet_kwargs(),
     )
     if proc.returncode != 0 or not tmp.exists():
         raise TranscribeUnavailable(f"ffmpeg 解码失败：{proc.stderr[-200:]}")
@@ -194,7 +195,8 @@ def transcribe_whisper(wav: Path) -> dict:
         "-t", str(config.WHISPER_THREADS), "-np",
     ]
     t0 = time.time()
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=7200, encoding="utf-8", errors="replace")
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=7200, encoding="utf-8",
+                          errors="replace", **hidewin.quiet_kwargs())
     elapsed = time.time() - t0
     txt = out_prefix.with_suffix(".txt")
     if proc.returncode != 0 or not txt.exists():

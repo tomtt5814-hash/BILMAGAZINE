@@ -13,6 +13,8 @@ import re
 import subprocess
 import time
 
+from . import hidewin
+
 BV_RE = re.compile(r"(BV[0-9A-Za-z]{10})")
 JS_LINKS = (
     'Array.from(document.querySelectorAll("a[href*=\\"/video/BV\\"]"))'
@@ -28,7 +30,8 @@ class BrowserUnavailable(Exception):
 def _bsk(*args: str, timeout: int = 90) -> str:
     try:
         proc = subprocess.run(["bsk", *args], capture_output=True, text=True,
-                              encoding="utf-8", errors="replace", timeout=timeout)
+                              encoding="utf-8", errors="replace", timeout=timeout,
+                              **hidewin.quiet_kwargs())
     except FileNotFoundError:
         raise BrowserUnavailable("找不到 bsk 命令，浏览器插件未安装或不在 PATH 里")
     except subprocess.TimeoutExpired:
@@ -73,7 +76,9 @@ def latest_bvs(items: list[dict], n: int = 1) -> dict[str, list[str]]:
     """items: [{uid, name, recent_n}] -> {uid: [bvid, ...]}"""
     if not items:
         return {}
-    sid = _json(_bsk("session", "start", "--json"))["session_id"]
+    # 背景 + 小窗口：定时任务不该在桌面上弹一个大浏览器窗口抢焦点
+    sid = _json(_bsk("session", "start", "--json", "--no-focus",
+                     "--width", "420", "--height", "320"))["session_id"]
     result: dict[str, list[str]] = {}
     try:
         for it in items:
@@ -96,7 +101,11 @@ def latest_bvs(items: list[dict], n: int = 1) -> dict[str, list[str]]:
             time.sleep(0.8)
     finally:
         try:
-            _bsk("session", "stop", "--session", sid, timeout=30)
+            _bsk("session", "stop", sid, timeout=30)   # 位置参数，不是 --session
         except Exception:
             pass
+    if items and not any(result.values()):
+        raise BrowserUnavailable(
+            "没取到任何 UP 主的最新一期：浏览器可能未登录，或空间页被风控（可先手动打开一次空间页）"
+        )
     return result
