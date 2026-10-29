@@ -15,7 +15,9 @@ sys.path.insert(0, str(ROOT))
 LOG = ROOT / "data" / "server.log"
 LOG.parent.mkdir(parents=True, exist_ok=True)
 
-# 从注册表补齐用户级环境变量：无论被启动项、计划任务还是手动拉起，都能拿到 key 与开关
+# 从注册表补齐用户级环境变量：无论被启动项、计划任务还是手动拉起，都能拿到 key 与开关。
+# 项目自己的配置项以注册表为准（覆盖从父进程继承来的旧值），其余变量保持继承。
+OWN = ("LLM_", "SCHEDULE_", "WECHAT_", "BILI_", "TRANSCRIBE_", "FASTER_", "RSS_", "ASR_")
 try:
     import winreg
 
@@ -26,8 +28,9 @@ try:
                 _name, _value, _ = winreg.EnumValue(_k, _i)
             except OSError:
                 break
-            if _name and isinstance(_value, str) and _name not in os.environ:
-                os.environ[_name] = _value
+            if _name and isinstance(_value, str):
+                if _name.startswith(OWN) or _name not in os.environ:
+                    os.environ[_name] = _value
             _i += 1
 except Exception:
     pass
