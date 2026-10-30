@@ -10,7 +10,7 @@
     --desk:#08090b;--paper:#f3eee3;--paper-2:#ebe3d4;
     --ink:#12110e;--ink-soft:#3c382f;--muted:#6f675a;
     --line:#d7cdba;--line-strong:#b9ac93;--card:#e9e1d1;
-    --acid:#dfff3f;--orange:#ff5b39;--blue:#1f5fa8;
+    --acid:#dfff3f;--sky:#55c8f2;--orange:#ff5b39;--blue:#1f5fa8;
     --fs-body:18px;--fs-zh:14.5px;--fs-gloss:11px;--measure:74ch;
     --serif:"Libre Bodoni","Bodoni Moda","Playfair Display",Georgia,"Times New Roman","Songti SC","Noto Serif SC",serif;
     --sans:"Public Sans",ui-sans-serif,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
@@ -37,6 +37,30 @@
   }
   ::selection{background:var(--acid);color:#0a0b0c}
   a{color:inherit}
+  body:not(.night){background:#fbf9f3}
+  body:not(.night)::before{
+    background:
+      linear-gradient(rgba(0,0,0,.035) 1px,transparent 1px) 0 0/96px 96px,
+      linear-gradient(90deg,rgba(0,0,0,.035) 1px,transparent 1px) 0 0/96px 96px,
+      radial-gradient(60% 50% at 70% 0%,rgba(223,255,63,.12),transparent 60%);
+  }
+  body:not(.night) .topbar{
+    background:rgba(251,249,243,.94);border-bottom-color:var(--line);color:var(--ink);
+  }
+  body:not(.night) .topbar__brand b{color:#647800}
+  body:not(.night) .topbar__brand span,
+  body:not(.night) .topbar__issue{color:var(--muted)}
+  body:not(.night) .topbar__issue b{color:var(--ink)}
+  body:not(.night) .topbar__back,
+  body:not(.night) .topbar__theme{
+    color:var(--ink);border-color:var(--line-strong);
+  }
+  body:not(.night) .topbar__back:hover,
+  body:not(.night) .topbar__theme:hover{color:#647800;border-color:#647800}
+  body:not(.night) .topbar__theme[aria-pressed="true"]{
+    background:transparent;border-color:var(--line-strong);color:var(--ink);
+  }
+  body:not(.night) .sheet{box-shadow:0 30px 80px rgba(53,45,30,.16)}
   .topbar{
     position:fixed;left:0;right:0;top:0;z-index:100;height:58px;
     display:flex;align-items:center;gap:20px;padding:0 clamp(14px,3vw,28px);
@@ -291,6 +315,8 @@
   .vbtn:active{transform:scale(.97)}
   .vbtn.on{background:var(--acid);color:#0a0b0c}
   .vbtn.on:hover{background:var(--acid);color:#0a0b0c}
+  #tb-open.on,.vbtn[data-toggle="cet6"].on{background:var(--sky);color:#06232f;border-color:var(--sky)}
+  #tb-open.on:hover,.vbtn[data-toggle="cet6"].on:hover{background:var(--sky);color:#06232f;border-color:var(--sky)}
 
   .next-story{
     position:fixed;right:22px;bottom:74px;z-index:92;
@@ -303,6 +329,10 @@
   }
   .next-story:hover{background:var(--acid);border-color:var(--acid);color:#0a0b0c;transform:translateY(-2px)}
   .next-story:active{transform:scale(.97)}
+  .next-story__num{
+    min-width:18px;text-align:center;font-family:var(--mono);font-size:13px;
+    font-weight:700;line-height:1;letter-spacing:0;
+  }
   .next-story[hidden]{display:none}
   body.tb-open .next-story{opacity:0;pointer-events:none;transform:translateY(6px)}
   @media (max-width:900px){
@@ -439,6 +469,7 @@
     .toolbox input[type=range]::-webkit-slider-thumb{width:16px;height:16px;margin-top:-7px}
     .next-story{width:46px;height:46px;padding:0;justify-content:center;border-radius:50%;bottom:70px}
     .next-story__label{display:none}
+    .next-story__num{font-size:16px}
   }
   @media print{
     body{background:#fff;color:#000}
@@ -575,7 +606,7 @@
 </div>
 
 <button type="button" class="next-story" id="next-story" aria-label="跳到下一篇">
-  <span class="next-story__label">下一篇</span> <span aria-hidden="true">↓</span>
+  <span class="next-story__label">下一篇</span><span class="next-story__num" id="next-story-num">1</span>
 </button>
 
 <div class="toolbox" id="toolbox" hidden role="dialog" aria-labelledby="tb-title">
@@ -751,18 +782,47 @@
   apply();
 
   var nextBtn=document.getElementById('next-story');
+  var nextNum=document.getElementById('next-story-num');
   var stories=[].slice.call(document.querySelectorAll('.story'));
   if(nextBtn){
     if(stories.length<2){nextBtn.hidden=true;}
-    else nextBtn.addEventListener('click',function(){
-      var threshold=window.innerWidth<=900?120:100;
-      var current=-1;
-      stories.forEach(function(s,i){
-        if(s.getBoundingClientRect().top<=threshold) current=i;
+    else{
+      var nextThreshold=function(){return window.innerWidth<=900?120:100;};
+      var currentStory=function(){
+        var current=0;
+        stories.forEach(function(s,i){
+          if(s.getBoundingClientRect().top<=nextThreshold()) current=i;
+        });
+        return current;
+      };
+      var nextLockUntil=0;
+      var nextTarget=0;
+      var paintNext=function(){
+        if(Date.now()<nextLockUntil) return;
+        nextTarget=currentStory();
+        if(nextNum) nextNum.textContent=String(nextTarget+1);
+        nextBtn.setAttribute('aria-label','跳到第'+((nextTarget+1)%stories.length+1)+'篇');
+      };
+      nextBtn.addEventListener('click',function(){
+        var base=Date.now()<nextLockUntil?nextTarget:currentStory();
+        var next=(base+1)%stories.length;
+        nextTarget=next;
+        nextLockUntil=Date.now()+1500;
+        if(nextNum) nextNum.textContent=String(next+1);
+        nextBtn.setAttribute('aria-label','跳到第'+((next+1)%stories.length+1)+'篇');
+        stories[next].scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+        setTimeout(paintNext,1650);
       });
-      var next=stories[current+1]||stories[0];
-      next.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
-    });
+      var nextTick=false;
+      window.addEventListener('scroll',function(){
+        if(nextTick) return;
+        nextTick=true;
+        requestAnimationFrame(function(){nextTick=false;paintNext();});
+      },{passive:true});
+      window.addEventListener('scrollend',function(){nextLockUntil=0;paintNext();});
+      window.addEventListener('resize',paintNext);
+      paintNext();
+    }
   }
 
   window.addEventListener('storage',function(e){

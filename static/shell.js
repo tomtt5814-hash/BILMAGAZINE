@@ -146,55 +146,70 @@
     });
   }
 
-  /* ---------- 往期卡片轮播 ---------- */
+  /* ---------- 往期卡片轮播（连续、匀速） ---------- */
   var deck = $('.deck-stage');
   if (deck && !reduced && window.innerWidth > 820) {
     var deckCards = $$('.deck-card', deck);
     var deckN = deckCards.length;
     if (deckN > 2) {
       var deckMid = Math.floor(deckN / 2);
-      var deckShift = deckMid;
-      var deckTimer = null;
+      var deckPhase = deckMid;
+      var deckRAF = null;
+      var deckLast = 0;
+      var deckRunning = false;
+      var deckPeriod = 2600;
+
+      var wrapPos = function (d) {
+        return ((d + deckN / 2) % deckN + deckN) % deckN - deckN / 2;
+      };
       var paintDeck = function () {
         deckCards.forEach(function (card, i) {
-          var pos = ((i + deckShift) % deckN + deckN) % deckN - deckMid;
+          var pos = wrapPos(i - deckPhase);
           var abs = Math.abs(pos);
-          card.style.setProperty('--pos', pos);
-          card.style.setProperty('--abs', abs);
-          card.setAttribute('aria-hidden', abs > 2 ? 'true' : 'false');
-          card.tabIndex = abs > 2 ? -1 : 0;
+          card.style.setProperty('--pos', pos.toFixed(4));
+          card.style.setProperty('--abs', abs.toFixed(4));
+          card.setAttribute('aria-hidden', abs > 2.05 ? 'true' : 'false');
+          card.tabIndex = abs > 2.05 ? -1 : 0;
         });
       };
+      var tickDeck = function (ts) {
+        if (!deckRunning) return;
+        if (!deckLast) deckLast = ts;
+        var dt = Math.min(64, ts - deckLast);
+        deckLast = ts;
+        deckPhase += dt / deckPeriod;
+        if (deckPhase >= deckN) deckPhase -= deckN;
+        paintDeck();
+        deckRAF = requestAnimationFrame(tickDeck);
+      };
       var startDeck = function () {
-        if (deckTimer) return;
-        deckTimer = setInterval(function () { deckShift += 1; paintDeck(); }, 2600);
+        if (deckRunning) return;
+        deckRunning = true;
+        deckLast = 0;
+        deckRAF = requestAnimationFrame(tickDeck);
       };
       var stopDeck = function () {
-        if (deckTimer) { clearInterval(deckTimer); deckTimer = null; }
+        deckRunning = false;
+        if (deckRAF) cancelAnimationFrame(deckRAF);
+        deckRAF = null;
       };
       deck.addEventListener('mouseenter', stopDeck);
       deck.addEventListener('mouseleave', startDeck);
 
-      /* 鼠标在卡片上时：抬升，并按指针位置四向倾斜 */
+      /* 鼠标在卡片上时：按指针位置四向倾斜（抬升与 1.5x 缩放交给 CSS hover） */
       if (window.matchMedia && window.matchMedia('(pointer:fine)').matches) {
         deckCards.forEach(function (card) {
-          card.addEventListener('pointerenter', function (e) {
-            if (e.pointerType !== 'mouse') return;
-            card.style.setProperty('--lift', '1');
-          });
           card.addEventListener('pointermove', function (e) {
             if (e.pointerType !== 'mouse') return;
             var r = card.getBoundingClientRect();
             var x = (e.clientX - r.left) / r.width - .5;
             var y = (e.clientY - r.top) / r.height - .5;
-            card.style.setProperty('--tiltY', (x * 26).toFixed(2) + 'deg');
-            card.style.setProperty('--tiltX', (-y * 22).toFixed(2) + 'deg');
-            card.style.setProperty('--lift', '1');
+            card.style.setProperty('--tiltY', (x * 34).toFixed(2) + 'deg');
+            card.style.setProperty('--tiltX', (-y * 30).toFixed(2) + 'deg');
           });
           card.addEventListener('pointerleave', function () {
             card.style.setProperty('--tiltX', '0deg');
             card.style.setProperty('--tiltY', '0deg');
-            card.style.setProperty('--lift', '0');
           });
         });
       }

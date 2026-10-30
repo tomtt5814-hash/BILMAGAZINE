@@ -355,7 +355,7 @@ html.ready .hero-title .word > span{transform:translateY(0)}
 /* 往期 · 旋转卡片 */
 .archive-deck{margin-top:clamp(22px,4vw,40px)}
 .deck-stage{
-  position:relative;height:clamp(360px,34vw,470px);perspective:1200px;
+  position:relative;height:clamp(580px,40vw,620px);perspective:1200px;
   border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden;
 }
 .deck-stage::before{
@@ -372,18 +372,24 @@ html.ready .hero-title .word > span{transform:translateY(0)}
   border:1px solid var(--line-2);background:var(--panel);overflow:hidden;
   transform:
     translateX(calc(var(--pos,0) * 250px))
-    translateY(calc(var(--lift,0) * -16px))
     translateZ(calc(var(--abs,0) * -130px))
     rotateY(calc(var(--pos,0) * -26deg + var(--tiltY,0deg)))
     rotateX(calc(var(--abs,0) * 1.5deg + var(--tiltX,0deg)))
     scale(calc(1 - var(--abs,0) * .06));
-  opacity:calc(1 - var(--abs,0) * .12);
+  translate:0 calc(var(--lift,0) * -40px);
+  scale:var(--hoverScale,1);
+  opacity:calc(1 - var(--abs,0) * .4);
   box-shadow:0 22px 50px rgba(0,0,0,.36);
   z-index:calc(10 - var(--abs,0));
   backface-visibility:hidden;
-  transition:transform .42s cubic-bezier(.2,.75,.25,1),opacity .6s var(--ease),border-color .3s,background .3s;
+  will-change:transform,translate,scale,opacity;
+  transition:translate .22s var(--ease),scale .22s var(--ease),opacity .25s var(--ease),box-shadow .25s var(--ease),border-color .3s,background .3s;
 }
-.deck-card:hover,.deck-card:focus-visible{border-color:var(--acid);background:var(--panel-2);z-index:30}
+.deck-card:hover,.deck-card:focus-visible{
+  --hoverScale:1.5;--lift:1;
+  border-color:var(--acid);background:var(--panel-2);z-index:30;
+  box-shadow:0 34px 70px rgba(0,0,0,.44);
+}
 .deck-card__top{
   display:flex;align-items:center;justify-content:space-between;gap:8px;
   padding:8px 10px;border-bottom:1px solid var(--line);font-family:var(--mono);
