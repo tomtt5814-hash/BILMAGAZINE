@@ -1,17 +1,13 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="day" data-theme-lock="day">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#08090b" id="theme-color">
+<meta name="theme-color" content="#efe7d6" id="theme-color">
 <title>控制台 · 博主日报杂志</title>
 <script>
-try{
-  var q=new URLSearchParams(location.search).get('theme');
-  if(q==='day'||q==='night')localStorage.setItem('bilmag.siteTheme',q);
-  document.documentElement.dataset.theme=localStorage.getItem('bilmag.siteTheme')||'night';
-  localStorage.setItem('bilmag.siteTheme',document.documentElement.dataset.theme);
-}catch(e){document.documentElement.dataset.theme='night';}
+/* 控制台是本机专用页面，固定白纸主题，不跟随公开站的黑夜主题。 */
+document.documentElement.dataset.theme='day';
 </script>
 <link rel="stylesheet" href="/static/app.css">
 <script>document.documentElement.classList.add('js');</script>
@@ -31,10 +27,6 @@ try{
       <a href="/">首页</a>
       <a href="#subscriptions">订阅</a>
       <a href="#run">运行</a>
-      <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换到白天模式" aria-pressed="false">
-        <span class="theme-toggle__icon" data-theme-icon aria-hidden="true">☀</span>
-        <span class="theme-toggle__text" data-theme-text>白天</span>
-      </button>
     </nav>
     <a class="nav-cta" href="/">
       回到杂志
@@ -209,7 +201,7 @@ try{
           {% set m = magazines[0] %}
           <div class="preview-browser">
             <div class="preview-browser__bar" aria-hidden="true"><i></i><i></i><i></i><span>/magazine/{{ m.day }}</span></div>
-            <iframe class="magif" src="/magazine/{{ m.day }}?v={{ m.mtime }}" title="今日杂志"></iframe>
+            <iframe class="magif" src="/magazine/{{ m.day }}?v={{ m.mtime }}&amp;theme=day" title="今日杂志"></iframe>
           </div>
           <p class="panel__note">{{ m.day }} · {{ m.count }} 篇 · <a href="/magazine/{{ m.day }}?v={{ m.mtime }}" target="_blank" rel="noopener" style="color:var(--acid)">新窗口打开 ↗</a></p>
         {% else %}
