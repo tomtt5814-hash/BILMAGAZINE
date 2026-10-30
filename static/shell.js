@@ -234,6 +234,12 @@
   themeBtns.forEach(function (btn) {
     btn.addEventListener('click', function () { setTheme(themeNow() === 'day' ? 'night' : 'day'); });
   });
+  window.addEventListener('storage', function (e) {
+    if (e.key === 'bilmag.siteTheme' && (e.newValue === 'day' || e.newValue === 'night') && e.newValue !== themeNow()) {
+      root.dataset.theme = e.newValue;
+      paintTheme();
+    }
+  });
   paintTheme();
 
   /* ---------- 页面幕布 ---------- */

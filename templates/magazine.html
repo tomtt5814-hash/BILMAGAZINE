@@ -715,6 +715,12 @@
   });
   apply();
 
+  window.addEventListener('storage',function(e){
+    if(e.key==='bilmag.siteTheme'&&(e.newValue==='day'||e.newValue==='night')&&e.newValue!==prefs.theme){
+      prefs.theme=e.newValue;apply();
+    }
+  });
+
   (function(){
     var root=document.documentElement;
     var line=document.getElementById('scroll-i');
