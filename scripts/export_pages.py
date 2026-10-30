@@ -89,7 +89,7 @@ def main() -> int:
     (SITE / "404.html").write_text(
         '<!doctype html><meta charset="utf-8"><title>404</title>'
         '<body style="font:16px/1.6 system-ui;padding:10vh 8vw;background:#08090b;color:#f4f1e8">'
-        '<p style="color:#dfff3f;letter-spacing:.16em">BILMASSAGE / 404</p>'
+        '<p style="color:#dfff3f;letter-spacing:.16em">BILMAGAZINE / 404</p>'
         '<h1>这一页没有收进存档。</h1><p><a style="color:#dfff3f" href="/">回到首页</a></p>',
         encoding="utf-8",
     )

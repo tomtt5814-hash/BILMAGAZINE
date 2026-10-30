@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#efe7d6" id="theme-color">
-<title>博主日报杂志 · 高动效版</title>
+<title>博主日报杂志</title>
 <script>
 try{
   var q=new URLSearchParams(location.search).get('theme');
@@ -18,14 +18,14 @@ try{
 <script src="/static/shell.js" defer></script>
 </head>
 <body class="home">
-<div class="veil" aria-hidden="true"><span>BILMASSAGE / DAILY EDITION</span></div>
+<div class="veil" aria-hidden="true"><span>BILMAGAZINE / DAILY EDITION</span></div>
 <div class="scroll-line" aria-hidden="true"><i id="scroll-i"></i></div>
 <div class="cursor" id="cursor" aria-hidden="true"></div>
 
 <div class="shell">
   <header class="site-head">
     <a class="brand" href="/" aria-label="博主日报杂志首页">
-      <b>BILMASSAGE</b><span>博主日报</span>
+      <b>BILMAGAZINE</b><span>博主日报</span>
     </a>
     <nav aria-label="主导航">
       <a href="#archive">往期</a>
@@ -74,17 +74,11 @@ try{
       {% if today.title_zh %}<p class="hero-zh reveal" style="--delay:120ms">{{ today.title_zh }}</p>{% endif %}
       {% if today.lede %}<p class="hero-lede reveal" style="--delay:180ms">{{ today.lede }}</p>{% endif %}
 
+      {% if not public_site %}
       <div class="hero-actions">
-        <a class="btn btn--acid magnet" data-magnet="12" href="/magazine/{{ today.day }}?v={{ today.mtime }}">
-          阅读本期
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
-        </a>
-        {% if not public_site %}
         <a class="btn magnet" data-magnet="8" href="/manage">管理订阅</a>
-        {% else %}
-        <a class="btn magnet" data-magnet="8" href="#archive">往期存档</a>
-        {% endif %}
       </div>
+      {% endif %}
 
       <div class="hero-meta">
         <span><i></i>{{ today.count }} 篇</span>
@@ -94,6 +88,7 @@ try{
     </div>
 
     <figure class="hero-art" data-tilt>
+      <a class="hero-art__link" href="/magazine/{{ today.day }}?v={{ today.mtime }}" aria-label="阅读本期：{{ today.title }}"></a>
       {% if today.thumb %}
       <img src="/magazine-thumb/{{ today.day }}" alt="{{ today.title }}" fetchpriority="high">
       {% else %}
