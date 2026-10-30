@@ -31,9 +31,9 @@ def publish_pages() -> tuple[bool, str]:
             "deploy",
             "site",
             "--project-name",
-            "bilmagazine",
+            config.PAGES_PROJECT,
             "--branch",
-            "main",
+            config.PAGES_BRANCH,
             "--commit-dirty=true",
         ],
     ]

@@ -57,10 +57,13 @@ COMMENTS_ENABLED = _get("COMMENTS_ENABLED", "1") == "1"
 COMMENTS_TOP_N = int(_get("COMMENTS_TOP_N", "5") or 5)
 
 SCHEDULE_ENABLED = _get("SCHEDULE_ENABLED", "0") == "1"
-SCHEDULE_TIME = _get("SCHEDULE_TIME", "22:30")
+SCHEDULE_TIME = _get("SCHEDULE_TIME", "22:00")
 
 # 成功生成一期后，自动导出并部署到 Cloudflare Pages；需要本机已登录 wrangler。
 AUTO_PUBLISH = _get("AUTO_PUBLISH", "0") == "1"
+# 每个 Cloudflare 账号用自己的 Pages 项目名；不要照抄示例里的 bilmagazine。
+PAGES_PROJECT = _get("PAGES_PROJECT", "bilmagazine")
+PAGES_BRANCH = _get("PAGES_BRANCH", "main")
 
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "

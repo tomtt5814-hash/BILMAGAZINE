@@ -33,29 +33,65 @@ Cloudflare Pages
 5. Jinja 渲染成自包含 HTML，封面内联；
 6. 导出静态站，自动部署到 Cloudflare Pages。
 
+## 第一次准备
+
+仓库里**不包含** `data/`（你的订阅、已生成杂志、运行日志）、`tools/`（229 MB 转写模型）
+和 `.env`（密钥）。换一台电脑或别人 clone 之后，会得到一套干净的代码，但需要重新准备这些。
+
+前提：Windows 10/11、Python 3.10+；如果要部署 Cloudflare，再加 Node.js 18+。
+
+```bash
+git clone https://github.com/tomtt5814-hash/BILMAGAZINE.git
+cd BILMAGAZINE
+python scripts/bootstrap.py
+```
+
+`bootstrap.py` 会：
+
+1. 安装 `requirements.txt`；
+2. 没有 `.env` 时从 `.env.example` 复制一份；
+3. 下载 7 张词表到 `data/vocab/`；
+4. 下载 SenseVoice-Small 模型到 `tools/sensevoice/`（约 229 MB）。
+
+然后编辑 `.env`，至少填：
+
+```ini
+LLM_API_KEY=sk-...
+```
+
+如果你暂时没有 DeepSeek key，可以先把 `LLM_PROVIDER=mock`，再执行一次
+`python scripts/seed_demo.py`（需要联网取 3 条样例），然后在控制台点「演示模式」，
+先看完整页面和杂志效果；演示内容会标注为预置样例，不是真实新视频。
+
 ## 本机怎么跑
 
 ```bat
 run.bat
 ```
 
-打开 <http://127.0.0.1:8000/manage>。手动启动服务也可以：
+打开 <http://127.0.0.1:8000/manage>。手动启动也可以：
 
 ```bash
-python -m pip install -r requirements.txt
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
+如果自动找最新一期时提示 `bsk` 不可用，不代表整站跑不起来：
+
+- 在控制台直接贴 BV 号，可以绕过自动发现；
+- 或者配 `BILI_COOKIE`，走接口；
+- 下载、转写、生成、阅读都不依赖 `bsk`。
+
 ### 不打开 DSH 也常驻
 
-服务已注册到 Windows 启动文件夹：
+这台电脑上，服务已经在 Windows 启动文件夹注册：
 
 ```text
 %APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\BILMAGAZINE Server.vbs
 ```
 
-它用 `pythonw` 隐藏拉起 `scripts/start_server.py`，带 WMI 单实例检查；登录 Windows 后自动运行。
-需要手动恢复时，双击 `scripts/start_server.bat`。
+它用 `pythonw` 隐藏拉起 `scripts/start_server.py`，登录 Windows 后自动运行。
+新机器没有这个 VBS；可以双击 `scripts/start_server.bat` 手动跑，或者把它的快捷方式
+放进 `shell:startup`。自动启动不是生成内容的必需项。
 
 默认每天 **22:00** 自动跑一期。前提是电脑不睡眠、服务在跑，并且 Edge 里仍保持 B 站登录
 （自动找最新一期要借浏览器的登录态）。
@@ -69,8 +105,12 @@ AUTO_PUBLISH=1
 ```
 
 成功生成一期（非演示模式）后，`app/publish.py` 会依次执行导出和
-`npx wrangler pages deploy site --project-name bilmagazine --branch main`。
+`npx wrangler pages deploy site --project-name <PAGES_PROJECT> --branch <PAGES_BRANCH>`。
 发布失败只会写进运行记录，不会把已经生成的杂志标成失败。
+
+**如果你要部署到自己的 Cloudflare**，必须把 `PAGES_PROJECT` 改成你自己的 Pages 项目名，
+不要照抄 `bilmagazine`：`bilmagazine.pages.dev` 已被本项目占用，Pages 子域名不能重复。
+在 Cloudflare 控制台或 `npx wrangler pages project create <名字>` 建好项目再部署。
 
 ## 配置
 
@@ -100,10 +140,10 @@ COMMENTS_TOP_N=5
 
 ```bash
 python scripts/export_pages.py
-npx wrangler pages deploy site --project-name bilmagazine --branch main
+npx wrangler pages deploy site --project-name <你的项目名> --branch main
 ```
 
-第一次需要 `npx wrangler login`。`scripts/export_pages.py` 会导出：
+第一次需要 `npx wrangler login`，并且要登录**你自己的** Cloudflare 账号。`scripts/export_pages.py` 会导出：
 
 - 首页、各期杂志、封面缩略图；
 - `static/app.css`、`static/shell.js`；
@@ -135,7 +175,7 @@ app/
   vocab.py         三层词汇
 templates/         index.html、dashboard.html、magazine.html
 static/            app.css、shell.js、sw.js、manifest、icons
-scripts/           export_pages.py、start_server.py、seed_demo.py 等
+scripts/           bootstrap.py、fetch_models.py、export_pages.py、start_server.py 等
 data/              运行时数据（已忽略）
 ```
 
@@ -147,6 +187,20 @@ data/              运行时数据（已忽略）
 - **往期**：5 张 3D 封面卡片持续匀速旋转；鼠标进入暂停，悬停放大、倾斜；手机横向滑动。
 - **下一篇**：阅读页右下角显示当前文章数字，点击跳到下一篇，手动滚动时数字同步。
 - **交互**：非全屏浮层默认点击外部 / Esc / 再点触发按钮关闭；全屏阅读页与批量开关除外。
+
+## 把仓库交给同学 / 另一个 DSH
+
+可以，但它是“可复现的项目”，不是“带数据和账号的一键安装包”。同学需要：
+
+1. 自己的 Python 环境，跑 `python scripts/bootstrap.py`；
+2. 自己的 DeepSeek key（或先看 `mock` 演示）；
+3. 自己的 Cloudflare 账号和**不重名**的 Pages 项目；
+4. 如果要用自动找最新一期，自己的 `bsk` 浏览器登录态或 `BILI_COOKIE`；
+5. 旧的 `data/`、`tools/` 不会跟着仓库走，第一次是空站，要自己生成一期。
+
+把仓库地址交给 DSH 后，可以让它按「第一次准备 → 本机怎么跑」执行；DSH 能替你跑命令，
+但**你的 key、Cookie、Cloudflare 登录不能借给同学**，他也不能直接占用
+`bilmagazine.pages.dev`。
 
 ## 已知边界
 
