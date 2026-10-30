@@ -3,80 +3,157 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>博主日报杂志</title>
+<meta name="theme-color" content="#08090b">
+<title>博主日报杂志 · 高动效版</title>
 <link rel="stylesheet" href="/static/app.css">
+<script>document.documentElement.classList.add('js');</script>
+<script src="/static/shell.js" defer></script>
 </head>
-<body>
+<body class="home">
+<div class="veil" aria-hidden="true"><span>BILMASSAGE / DAILY EDITION</span></div>
+<div class="scroll-line" aria-hidden="true"><i id="scroll-i"></i></div>
+<div class="cursor" id="cursor" aria-hidden="true"></div>
+
 <div class="shell">
-  <header class="top nav-top">
-    <h1>博主日报杂志 <span>B 站博主的最新一期，变成一本英文科普小刊</span></h1>
-    <nav>
-      <a class="nav-btn" href="/manage">管理和生成</a>
+  <header class="site-head">
+    <a class="brand" href="/" aria-label="博主日报杂志首页">
+      <b>BILMASSAGE</b><span>博主日报</span>
+    </a>
+    <nav aria-label="主导航">
+      <a href="#archive">往期</a>
+      <a href="/manage">订阅</a>
+      <a href="/manage">控制台</a>
     </nav>
+    <a class="nav-cta" href="/manage">
+      生成新一期
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+    </a>
   </header>
 
   {% if active_run %}
-  <a class="running-bar" href="/manage?run={{ active_run.id }}">
-    <span class="dot"></span>
-    正在生成 · {{ active_run.progress or 0 }}% · 已完成 {{ active_run.ok }} 篇
-    <span class="go">查看进度 →</span>
+  <a class="live-bar" href="/manage?run={{ active_run.id }}">
+    <span class="live-dot" aria-hidden="true"></span>
+    <span>正在生成 · 已完成 <b>{{ active_run.ok }}</b> 篇</span>
+    <span>{{ active_run.progress or 0 }}%</span>
+    <span class="arrow">查看进度 →</span>
   </a>
   {% endif %}
+</div>
 
-  {% if mags %}
-    {% set today = mags[0] %}
-    <a class="hero" href="/magazine/{{ today.day }}?v={{ today.mtime }}">
-      <div class="hero__text">
-        <div class="kicker">
-          <span class="kicker__issue">ISSUE {{ '%03d'|format(today.issue or 1) }}</span>
-          <span class="kicker__date">{{ today.day }} · 今天</span>
-        </div>
-        <h2 class="hero__title">{{ today.title }}</h2>
-        {% if today.title_zh %}<p class="hero__zh">{{ today.title_zh }}</p>{% endif %}
-        {% if today.lede %}<p class="hero__lede">{{ today.lede }}</p>{% endif %}
-        <div class="chips">
-          {% for b in today.bloggers %}<span class="chip">{{ b }}</span>{% endfor %}
-        </div>
-        <div class="hero__foot">
-          <span>{{ today.count }} 篇</span>
-          <span class="read">阅读整期 →</span>
-        </div>
+{% if mags %}
+{% set today = mags[0] %}
+<main>
+  <section class="shell home-hero">
+    <div class="hero-rail" aria-hidden="true">
+      <span class="hero-rail__issue">ISSUE / {{ '%03d'|format(today.issue or 1) }}<br>{{ today.day }}</span>
+      <span class="hero-rail__num">{{ '%02d'|format(today.issue or 1) }}</span>
+      <span class="hero-rail__issue">TODAY'S EDITION<br>LOCAL / 22:30</span>
+    </div>
+
+    <div class="hero-copy">
+      <p class="eyebrow reveal">今日刊物 · {{ today.day }}</p>
+      <h1 class="hero-title">
+        <a href="/magazine/{{ today.day }}?v={{ today.mtime }}">{{ today.title }}</a>
+      </h1>
+      {% if today.title_zh %}<p class="hero-zh reveal" style="--delay:120ms">{{ today.title_zh }}</p>{% endif %}
+      {% if today.lede %}<p class="hero-lede reveal" style="--delay:180ms">{{ today.lede }}</p>{% endif %}
+
+      <div class="hero-actions">
+        <a class="btn btn--acid magnet" data-magnet="12" href="/magazine/{{ today.day }}?v={{ today.mtime }}">
+          阅读本期
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+        </a>
+        <a class="btn magnet" data-magnet="8" href="/manage">管理订阅</a>
       </div>
+
+      <div class="hero-meta">
+        <span><i></i>{{ today.count }} 篇</span>
+        <span><i></i>{{ today.bloggers|length }} 位博主</span>
+        <span><i></i>英文 / 双语 / CET-6 标注</span>
+      </div>
+    </div>
+
+    <figure class="hero-art" data-tilt>
       {% if today.thumb %}
-        <img class="hero__thumb" src="/magazine-thumb/{{ today.day }}" alt="">
+      <img src="/magazine-thumb/{{ today.day }}" alt="{{ today.title }}" fetchpriority="high">
       {% else %}
-        <div class="hero__thumb hero__thumb--empty"></div>
+      <div class="hero-art__empty" aria-hidden="true"></div>
       {% endif %}
-    </a>
+      <figcaption class="hero-art__label">
+        <span>ISSUE {{ '%03d'|format(today.issue or 1) }}</span>
+        <b>READ 01 — {{ '%02d'|format(today.count) }}</b>
+      </figcaption>
+      <span class="hero-art__corner">LOCAL EDITION · {{ today.day }}</span>
+    </figure>
+  </section>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee__track">
+      <span>ENGLISH · CURATED · DAILY</span><span>读一篇，少一点噪声</span><span>BILIBILI → MAGAZINE</span><span>CET-6 IN CONTEXT</span>
+      <span>ENGLISH · CURATED · DAILY</span><span>读一篇，少一点噪声</span><span>BILIBILI → MAGAZINE</span><span>CET-6 IN CONTEXT</span>
+    </div>
+  </div>
+
+  <section class="shell stats reveal" aria-label="存档统计">
+    <div class="stat">
+      <span class="stat__k">ARCHIVE</span>
+      <span class="stat__v"><em data-count="{{ mags|length }}">0</em></span>
+      <span class="stat__n">期本地存档</span>
+    </div>
+    <div class="stat">
+      <span class="stat__k">TODAY</span>
+      <span class="stat__v"><em data-count="{{ today.count }}">0</em></span>
+      <span class="stat__n">篇本期文章</span>
+    </div>
+    <div class="stat">
+      <span class="stat__k">VOICES</span>
+      <span class="stat__v"><em data-count="{{ today.bloggers|length }}">0</em></span>
+      <span class="stat__n">位博主被收进这一期</span>
+    </div>
+  </section>
+
+  <section class="shell archive" id="archive">
+    <div class="section-head reveal">
+      <h2>往期存档</h2>
+      <p>THE ARCHIVE · {{ mags|length }} ISSUES</p>
+    </div>
 
     {% if mags|length > 1 %}
-    <div class="section-label">往期</div>
-    <div class="cards">
+    <div class="issue-list">
       {% for m in mags[1:] %}
-      <a class="mcard" href="/magazine/{{ m.day }}?v={{ m.mtime }}">
-        {% if m.thumb %}<img class="mcard__thumb" src="/magazine-thumb/{{ m.day }}" alt="">{% endif %}
-        <div class="mcard__body">
-          <div class="mcard__date">
-            {% if loop.index == 1 %}昨天 · {% elif loop.index == 2 %}前天 · {% endif %}{{ m.day }}
-          </div>
-          <h3 class="mcard__title">{{ m.title }}</h3>
-          {% if m.title_zh %}<p class="mcard__title-zh">{{ m.title_zh }}</p>{% endif %}
-          <div class="mcard__meta">{{ m.count }} 篇{% if m.bloggers %} · {{ m.bloggers|join(' / ') }}{% endif %}</div>
-        </div>
+      <a class="issue-row reveal" style="--delay:{{ loop.index0 * 55 }}ms" href="/magazine/{{ m.day }}?v={{ m.mtime }}">
+        <span class="issue-row__num">NO. {{ '%03d'|format(m.issue or loop.index) }}</span>
+        <span class="issue-row__date">{{ m.day }}</span>
+        <span class="issue-row__title">{{ m.title }}</span>
+        <span class="issue-row__meta">{{ m.count }} STORIES</span>
+        <span class="issue-row__arrow" aria-hidden="true">↗</span>
       </a>
       {% endfor %}
     </div>
-    {% endif %}
-  {% else %}
-    <div class="empty-state">
-      <p>还没有生成过杂志。</p>
-      <a class="nav-btn" href="/manage">去生成第一期</a>
+    {% else %}
+    <div class="empty-state reveal">
+      <h2>第一期已经在这里。</h2>
+      <p>明晚 22:30 之后，这里会长出第二期。</p>
+      <a class="btn btn--acid" href="/manage">先去控制台看看</a>
     </div>
-  {% endif %}
+    {% endif %}
+  </section>
+</main>
+{% else %}
+<main class="shell">
+  <div class="empty-state" style="margin-top:clamp(60px,12vh,140px)">
+    <p class="eyebrow" style="justify-content:center">NO ISSUE YET</p>
+    <h2>还没有第一期。</h2>
+    <p>订阅几个博主，或者先用演示数据生成一期。</p>
+    <a class="btn btn--acid" href="/manage">去生成第一期</a>
+  </div>
+</main>
+{% endif %}
 
+<div class="shell">
   <footer class="site-foot">
     <span>{{ mags|length }} 期存档 · 本地生成 · 仅个人阅读</span>
-    <a href="/manage">管理和生成 ↗</a>
+    <span><a href="/manage">管理和生成 ↗</a></span>
   </footer>
 </div>
 </body>

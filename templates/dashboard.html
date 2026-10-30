@@ -3,166 +3,224 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>博主日报杂志</title>
+<meta name="theme-color" content="#08090b">
+<title>控制台 · 博主日报杂志</title>
 <link rel="stylesheet" href="/static/app.css">
+<script>document.documentElement.classList.add('js');</script>
+<script src="/static/shell.js" defer></script>
 </head>
-<body>
-<div class="shell">
-  <div class="top nav-top">
-    <h1>博主日报杂志 <span>订阅、生成与查看</span></h1>
-    <nav>
-      <a class="nav-btn" href="/">← 返回首页</a>
-    </nav>
-  </div>
+<body class="console">
+<div class="veil" aria-hidden="true"><span>BILMASSAGE / CONTROL ROOM</span></div>
+<div class="scroll-line" aria-hidden="true"><i id="scroll-i"></i></div>
+<div class="cursor" id="cursor" aria-hidden="true"></div>
 
-  <div class="pills">
-    <span class="pill {{ 'ok' if status.llm_key and status.llm_provider != 'mock' else 'warn' }}">
-      LLM：<b>{{ '真实 API · ' ~ status.llm_model if status.llm_key and status.llm_provider != 'mock' else '未配置（演示模式）' }}</b>
-    </span>
-    <span class="pill {{ 'ok' if status.asr_ok else 'warn' }}">
-      转写：<b>{{ status.asr_label }}</b>
-    </span>
-    <span class="pill {{ 'ok' if status.src_ok else 'warn' }}" title="{{ status.src_hint }}">
-      取最新一期：<b>{{ status.src_label }}</b>
-    </span>
-    <span class="pill {{ 'ok' if status.schedule != '关闭（手动触发）' else '' }}">
-      定时：<b>{{ status.schedule }}</b>
-    </span>
-    <span class="pill">已处理：<b>{{ processed_count }}</b> 个视频</span>
-  </div>
+<div class="shell">
+  <header class="site-head">
+    <a class="brand" href="/" aria-label="返回首页">
+      <b>BILMASSAGE</b><span>控制台</span>
+    </a>
+    <nav aria-label="主导航">
+      <a href="/">首页</a>
+      <a href="#subscriptions">订阅</a>
+      <a href="#run">运行</a>
+    </nav>
+    <a class="nav-cta" href="/">
+      回到杂志
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H6M11 6l-6 6 6 6"/></svg>
+    </a>
+  </header>
+
+  <section class="console-hero">
+    <div>
+      <p class="eyebrow">CONTROL ROOM · {{ processed_count }} PROCESSED</p>
+      <h1>把今晚的信号<br>收进一本<em>杂志</em>。</h1>
+    </div>
+    <div class="console-hero__meta">
+      <div>NEXT RUN <b>{{ status.next_run or '手动触发' }}</b></div>
+      <div>SCHEDULE <b>{{ status.schedule }}</b></div>
+      <div>ARCHIVE <b>{{ magazines|length }} ISSUES</b></div>
+    </div>
+  </section>
+
+  <section class="signal-grid" aria-label="系统状态">
+    <div class="signal signal--{{ 'ok' if status.llm_key and status.llm_provider != 'mock' else 'warn' }}">
+      <div class="signal__top"><span class="signal__k">LLM</span><span class="signal__led" aria-hidden="true"></span></div>
+      <span class="signal__v">{{ status.llm_model if status.llm_key and status.llm_provider != 'mock' else '演示模式' }}</span>
+      <span class="signal__n">{{ '真实 API 已连接' if status.llm_key and status.llm_provider != 'mock' else '未配置 API Key' }}</span>
+    </div>
+    <div class="signal signal--{{ 'ok' if status.asr_ok else 'warn' }}">
+      <div class="signal__top"><span class="signal__k">TRANSCRIBE</span><span class="signal__led" aria-hidden="true"></span></div>
+      <span class="signal__v">{{ status.asr_label }}</span>
+      <span class="signal__n">{{ '本地转写就绪' if status.asr_ok else '转写不可用' }}</span>
+    </div>
+    <div class="signal signal--{{ 'ok' if status.src_ok else 'warn' }}">
+      <div class="signal__top"><span class="signal__k">SOURCE</span><span class="signal__led" aria-hidden="true"></span></div>
+      <span class="signal__v" title="{{ status.src_hint }}">{{ status.src_label }}</span>
+      <span class="signal__n">{{ '取最新一期' if status.src_ok else '需要浏览器登录态' }}</span>
+    </div>
+    <div class="signal signal--{{ 'ok' if status.schedule != '关闭（手动触发）' else '' }}">
+      <div class="signal__top"><span class="signal__k">SCHEDULE</span><span class="signal__led" aria-hidden="true"></span></div>
+      <span class="signal__v">{{ status.schedule }}</span>
+      <span class="signal__n">{{ status.next_run or '等待手动指令' }}</span>
+    </div>
+  </section>
 
   {% if not (status.llm_key and status.llm_provider != 'mock') %}
-  <div class="banner">
+  <div class="alert reveal" role="status">
     <b>当前是演示模式。</b>LLM 未配置，所以「摘要 / 六级改写」两步走的是
-    <code>data/demo/llm_cache.json</code> 里的预置样例（文案由助手按需求书 F4 标准手写，不是真实模型输出）。
-    填好 <code>.env</code> 的 <code>LLM_API_KEY</code> 后重启即可走真实链路。
+    <code>data/demo/llm_cache.json</code> 里的预置样例；填好 <code>.env</code> 的
+    <code>LLM_API_KEY</code> 后重启即可走真实链路。
   </div>
   {% endif %}
 
-  <div class="grid">
-    <div>
-      <div class="card">
-        <h2>订阅列表</h2>
+  <div class="console-grid">
+    <div class="col">
+      <section class="panel reveal" id="subscriptions">
+        <div class="panel__head">
+          <h2>订阅列表 / SOURCES</h2>
+          <span>{{ subs|length }} 个来源</span>
+        </div>
+
         {% if subs %}
-        <table>
-          <thead><tr><th>博主</th><th>UID</th><th>检查期数</th><th>状态</th><th></th></tr></thead>
-          <tbody>
-          {% for b in subs %}
-            <tr>
-              <td>{{ b.name }}{% if b.kind == 'wechat' %} <span style="color:#6d665a;font-size:11px">公众号</span>{% endif %}</td>
-              <td style="color:#6d665a">{{ b.uid }}</td>
-              <td>
-                <form class="inline" method="post" action="/subs/n">
-                  <input type="hidden" name="uid" value="{{ b.uid }}">
-                  <input type="number" name="recent_n" value="{{ b.recent_n }}" min="1" max="5"
-                         style="width:64px" onchange="this.form.submit()">
-                </form>
-              </td>
-              <td>{{ '开启' if b.enabled else '关闭' }}</td>
-              <td style="text-align:right;white-space:nowrap">
-                {% if b.kind not in ('wechat', 'rss') %}
-                <a class="ghost-btn" href="https://space.bilibili.com/{{ b.uid }}/video"
-                   target="_blank" rel="noopener" title="在浏览器打开 TA 的空间，取最新一期 BV 号">空间 ↗</a>
-                {% endif %}
-                <form class="inline" method="post" action="/subs/toggle">
-                  <input type="hidden" name="uid" value="{{ b.uid }}">
-                  <button class="ghost tiny">{{ '关闭' if b.enabled else '开启' }}</button>
-                </form>
-                <form class="inline" method="post" action="/subs/delete">
-                  <input type="hidden" name="uid" value="{{ b.uid }}">
-                  <button class="ghost tiny">删除</button>
-                </form>
-              </td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>博主</th><th>UID</th><th>检查期数</th><th>状态</th><th></th></tr></thead>
+            <tbody>
+            {% for b in subs %}
+              <tr>
+                <td>
+                  <span class="sub-name">{{ b.name }}</span>
+                  {% if b.kind == 'wechat' %}<span class="sub-kind">公众号</span>{% endif %}
+                </td>
+                <td><span class="sub-uid" title="{{ b.uid }}">{{ 'RSS' if b.kind == 'rss' else b.uid }}</span></td>
+                <td>
+                  <form class="inline" method="post" action="/subs/n">
+                    <input type="hidden" name="uid" value="{{ b.uid }}">
+                    <input class="tnum" type="number" name="recent_n" value="{{ b.recent_n }}" min="1" max="5" aria-label="检查期数" onchange="this.form.submit()">
+                  </form>
+                </td>
+                <td>{{ '开启' if b.enabled else '关闭' }}</td>
+                <td class="cell-actions">
+                  {% if b.kind not in ('wechat', 'rss') %}
+                  <a class="btn btn--sm btn--ghost" href="https://space.bilibili.com/{{ b.uid }}/video" target="_blank" rel="noopener" title="打开 TA 的空间，取最新一期 BV 号">空间 ↗</a>
+                  {% endif %}
+                  <form class="inline" method="post" action="/subs/toggle">
+                    <input type="hidden" name="uid" value="{{ b.uid }}">
+                    <button class="btn btn--sm btn--ghost">{{ '关闭' if b.enabled else '开启' }}</button>
+                  </form>
+                  <form class="inline" method="post" action="/subs/delete">
+                    <input type="hidden" name="uid" value="{{ b.uid }}">
+                    <button class="btn btn--sm btn--danger">删除</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
         {% else %}
         <div class="empty">还没有订阅。填一个 UP 主 UID 或空间链接开始。</div>
         {% endif %}
 
-        <form class="row" method="post" action="/subscriptions" style="margin-top:16px">
-          <div class="f"><label>UP 主 UID / 空间链接</label><input type="text" name="uid_input" placeholder="946974 或 https://space.bilibili.com/946974" required></div>
-          <div class="f"><label>备注名（可选）</label><input type="text" name="name" placeholder="影视飓风"></div>
-          <div style="width:90px"><label>期数</label><input type="number" name="recent_n" value="1" min="1" max="5"></div>
-          <button>加入</button>
+        <form class="sub-form form-grid" method="post" action="/subscriptions">
+          <div class="field field--grow"><label for="uid_input">UP 主 UID / 空间链接</label><input id="uid_input" type="text" name="uid_input" placeholder="946974 或 https://space.bilibili.com/946974" required></div>
+          <div class="field field--grow"><label for="sub_name">备注名（可选）</label><input id="sub_name" type="text" name="name" placeholder="影视飓风"></div>
+          <div class="field field--sm"><label for="sub_n">期数</label><input id="sub_n" type="number" name="recent_n" value="1" min="1" max="5"></div>
+          <div class="field"><button class="btn btn--sm btn--acid">加入</button></div>
         </form>
 
-        <form class="row" method="post" action="/subscribe-wechat" style="margin-top:12px">
-          <div class="f"><label>公众号名称</label><input type="text" name="account" placeholder="差评X.PIN" required></div>
-          <div style="width:90px"><label>篇数</label><input type="number" name="recent_n" value="1" min="1" max="5"></div>
-          <button class="ghost">订阅公众号</button>
+        <form class="sub-form form-grid" method="post" action="/subscribe-wechat">
+          <div class="field field--grow"><label for="wechat_account">公众号名称</label><input id="wechat_account" type="text" name="account" placeholder="差评X.PIN" required></div>
+          <div class="field field--sm"><label for="wechat_n">篇数</label><input id="wechat_n" type="number" name="recent_n" value="1" min="1" max="5"></div>
+          <div class="field"><button class="btn btn--sm btn--ghost">订阅公众号</button></div>
         </form>
-        <form class="row" method="post" action="/subscribe-rss" style="margin-top:12px">
-          <div class="f"><label>RSS 订阅（公众号镜像，推荐）</label><input type="text" name="feed_url" placeholder="https://wechat2rss.xlab.app/feed/8d839....xml" required></div>
-          <div class="f"><label>备注名</label><input type="text" name="name" placeholder="差评"></div>
-          <div style="width:90px"><label>篇数</label><input type="number" name="recent_n" value="1" min="1" max="5"></div>
-          <button class="ghost">订阅 RSS</button>
-        </form>
-        <p class="note">公众号走搜狗微信发现最新文章，可能被限流；也可以直接把 <code>mp.weixin.qq.com/s/...</code> 链接粘到下面的「手动处理视频」。</p>
-      </div>
 
-      <div class="card">
-        <h2>运行</h2>
-        <form class="row" method="post" action="/run" style="margin-bottom:10px">
-          <div class="f"><label>手动处理视频（可填多个，逗号分隔）</label><input type="text" name="bv_input" placeholder="BV1yUHP6rEYD,BV1GDHA6HEHu"></div>
-          <button>处理</button>
+        <form class="sub-form form-grid" method="post" action="/subscribe-rss">
+          <div class="field field--grow"><label for="feed_url">RSS 订阅（公众号镜像，推荐）</label><input id="feed_url" type="text" name="feed_url" placeholder="https://wechat2rss.xlab.app/feed/8d839....xml" required></div>
+          <div class="field field--grow"><label for="rss_name">备注名</label><input id="rss_name" type="text" name="name" placeholder="差评"></div>
+          <div class="field field--sm"><label for="rss_n">篇数</label><input id="rss_n" type="number" name="recent_n" value="1" min="1" max="5"></div>
+          <div class="field"><button class="btn btn--sm btn--ghost">订阅 RSS</button></div>
         </form>
-        <form class="row" method="post" action="/run" style="margin-bottom:10px">
-          <div class="f"><label>粘贴公众号文章链接（最可靠）</label><input type="text" name="bv_input" placeholder="https://mp.weixin.qq.com/s/..."></div>
-          <button class="ghost">加成一篇</button>
-        </form>
-        <p class="note" style="margin:0 0 14px">没配 B 站 Cookie 时，点订阅表里的「空间 ↗」在浏览器取最新一期 BV 号，粘到上面即可。</p>
-        <div class="row">
-          <form class="inline" method="post" action="/run"><button>自动检查并生成一期</button></form>
-          <form class="inline" method="post" action="/run-demo"><button class="ghost">用演示数据生成一期</button></form>
+        <p class="panel__note">公众号走搜狗微信发现最新文章，可能被限流；也可以直接把 <code>mp.weixin.qq.com/s/...</code> 链接粘到下面的「手动处理链接」。</p>
+      </section>
+
+      <section class="panel reveal" id="run">
+        <div class="panel__head">
+          <h2>运行 / MANUAL RUN</h2>
+          <span>LOCAL PIPELINE</span>
         </div>
-        <p class="note">「自动检查」会借你浏览器的登录态去每个 UP 主空间取最新一期（会闪现一个浏览器窗口，约 15 秒后自动关闭），然后下载、转写、生成杂志。已处理过的自动跳过。</p>
 
-        <h2 style="margin-top:24px">本次运行</h2>
-        <div id="pwrap" style="display:none">
-          <div class="pbar"><div class="pfill" id="pfill"></div></div>
-          <div class="pmeta">
-            <span id="ppct">0%</span>
-            <span id="pstage">准备中…</span>
+        <form class="form-grid" method="post" action="/run">
+          <div class="field field--grow"><label for="bv_input">手动处理视频（可填多个，逗号分隔）</label><input id="bv_input" type="text" name="bv_input" placeholder="BV1yUHP6rEYD,BV1GDHA6HEHu"></div>
+          <div class="field"><button class="btn btn--sm btn--acid">处理</button></div>
+        </form>
+
+        <form class="form-grid" style="margin-top:10px" method="post" action="/run">
+          <div class="field field--grow"><label for="wx_link">粘贴公众号文章链接（最可靠）</label><input id="wx_link" type="text" name="bv_input" placeholder="https://mp.weixin.qq.com/s/..."></div>
+          <div class="field"><button class="btn btn--sm btn--ghost">加成一篇</button></div>
+        </form>
+
+        <p class="panel__note">没配 B 站 Cookie 时，点订阅表里的「空间 ↗」在浏览器取最新一期 BV 号，粘到上面即可。</p>
+
+        <div class="run-actions">
+          <form method="post" action="/run"><button class="btn btn--sm btn--acid">自动检查并生成一期</button></form>
+          <form method="post" action="/run-demo"><button class="btn btn--sm btn--ghost">用演示数据生成一期</button></form>
+        </div>
+        <p class="panel__note">「自动检查」会借你浏览器的登录态去每个 UP 主空间取最新一期（会闪现一个浏览器窗口，约 15 秒后自动关闭），然后下载、转写、生成杂志。已处理过的自动跳过。</p>
+
+        <div class="run-progress" id="pwrap" hidden>
+          <div class="progress-head">
+            <span class="progress-pct" id="ppct">0%</span>
+            <span class="progress-stage" id="pstage">准备中…</span>
           </div>
+          <div class="track"><i id="pfill"></i></div>
         </div>
+
         <div class="log" id="log">
           {% if runs %}
             {% set r = runs[0] %}
-            <div class="it"><span class="st">{{ r.status }}</span><span class="ti">{{ r.started_at }}</span><span class="de">成功 {{ r.ok }} · 失败 {{ r.failed }} · 跳过 {{ r.skipped }}</span></div>
+            <div class="it"><span class="st {{ r.status }}">{{ r.status }}</span><span class="ti">{{ r.started_at }}</span><span class="de">成功 {{ r.ok }} · 失败 {{ r.failed }} · 跳过 {{ r.skipped }}</span></div>
           {% else %}
             <div class="empty">还没有运行记录。</div>
           {% endif %}
         </div>
-      </div>
+      </section>
     </div>
 
-    <div>
-      <div class="card">
-        <h2>今日杂志</h2>
+    <aside class="col">
+      <section class="panel reveal">
+        <div class="panel__head">
+          <h2>今日杂志 / PREVIEW</h2>
+          <span>{{ magazines[0].day if magazines else 'EMPTY' }}</span>
+        </div>
         {% if magazines %}
           {% set m = magazines[0] %}
-          <iframe class="magif" src="/magazine/{{ m.day }}?v={{ m.mtime }}" title="今日杂志"></iframe>
-          <p class="note">{{ m.day }} · {{ m.count }} 篇 · <a href="/magazine/{{ m.day }}?v={{ m.mtime }}" target="_blank">新窗口打开</a></p>
+          <div class="preview-browser">
+            <div class="preview-browser__bar" aria-hidden="true"><i></i><i></i><i></i><span>/magazine/{{ m.day }}</span></div>
+            <iframe class="magif" src="/magazine/{{ m.day }}?v={{ m.mtime }}" title="今日杂志"></iframe>
+          </div>
+          <p class="panel__note">{{ m.day }} · {{ m.count }} 篇 · <a href="/magazine/{{ m.day }}?v={{ m.mtime }}" target="_blank" rel="noopener" style="color:var(--acid)">新窗口打开 ↗</a></p>
         {% else %}
           <div class="empty">还没有生成过杂志。点上面的「用演示数据生成一期」看看效果。</div>
         {% endif %}
-      </div>
+      </section>
 
-      <div class="card">
-        <h2>历史</h2>
+      <section class="panel reveal">
+        <div class="panel__head">
+          <h2>历史 / HISTORY</h2>
+          <span>{{ magazines|length }} ISSUES</span>
+        </div>
         {% if magazines %}
         <ul class="hist">
           {% for m in magazines %}
-          <li><a href="/magazine/{{ m.day }}?v={{ m.mtime }}" target="_blank">{{ m.title }}</a><span class="d">{{ m.day }}</span></li>
+          <li><a href="/magazine/{{ m.day }}?v={{ m.mtime }}" target="_blank" rel="noopener">{{ m.title }}</a><span class="d">{{ m.day }}</span></li>
           {% endfor %}
         </ul>
         {% else %}
         <div class="empty">暂无历史。</div>
         {% endif %}
-      </div>
-    </div>
+      </section>
+    </aside>
   </div>
 </div>
 
@@ -187,7 +245,6 @@ function render(run){
     ${items || '<div class="empty">正在收集任务…</div>'}
     ${run.note ? `<div class="it"><span class="st">note</span><span class="ti" style="white-space:normal">${run.note}</span></div>` : ''}`;
 
-  // 进度条：服务端的百分比只在「步骤切换」时跳，长步骤中间靠这里按秒推进
   lastRun = run;
   paintBar();
 }
@@ -203,16 +260,14 @@ function paintBar(){
   if (run.status === 'running' && last && last.stage_started){
     const el = Math.max(0, Date.now() / 1000 - Number(last.stage_started));
     const span = Number(last.stage_span || 0);
-    // 指数逼近：前 10 秒涨得快，之后越来越慢，最多再走 span 的 85%
     const ease = Math.min(0.85, 1 - Math.exp(-el / 30));
     if (span > 0) p = p + span * ease;
     waited = ` · 已 ${Math.round(el)}s`;
   }
   p = Math.round(Math.min(99, p));
-  document.getElementById('pwrap').style.display = 'block';
-  const fill = document.getElementById('pfill');
-  fill.style.width = p + '%';
-  fill.classList.toggle('anim', run.status === 'running');
+  const wrap = document.getElementById('pwrap');
+  wrap.hidden = false;
+  document.getElementById('pfill').style.width = p + '%';
   document.getElementById('ppct').textContent = p + '%';
   document.getElementById('pstage').textContent = run.status === 'running'
     ? `${LABEL[last && last.state] || '准备中'} · 第 ${items.length}/${total} 条${waited}`
@@ -228,7 +283,7 @@ if (runId){
     if (lastRun.status === 'running') setTimeout(tick, 1200);
     else setTimeout(() => { location.href = '/'; }, 1500);
   };
-  setInterval(paintBar, 500);   // 每半秒重画一次，让长步骤也看得出在动
+  setInterval(paintBar, 500);
   tick();
 }
 </script>
