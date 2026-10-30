@@ -173,7 +173,13 @@ try{
           <em>ISSUES</em>
         </div>
       </div>
-      <p class="deck-hint">悬停暂停 · 点击卡片进入 · 手机左右滑</p>
+      <div class="deck-controls">
+        <p class="deck-hint">悬停暂停 · 点击卡片进入 · 手机左右滑</p>
+        <div class="deck-nav" aria-label="切换往期">
+          <button type="button" class="deck-nav__btn" data-deck-prev aria-label="上一期">←</button>
+          <button type="button" class="deck-nav__btn" data-deck-next aria-label="下一期">→</button>
+        </div>
+      </div>
     </div>
     {% else %}
     <div class="empty-state reveal">

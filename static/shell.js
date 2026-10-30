@@ -148,6 +148,21 @@
 
   /* ---------- 往期卡片轮播 ---------- */
   var deck = $('.deck-stage');
+  var deckRail = $('.deck-ring');
+  $$('[data-deck-prev]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (deckRail && window.innerWidth <= 820) {
+        deckRail.scrollBy({ left: -(deckRail.clientWidth * 0.72 + 14), behavior: 'smooth' });
+      }
+    });
+  });
+  $$('[data-deck-next]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (deckRail && window.innerWidth <= 820) {
+        deckRail.scrollBy({ left: deckRail.clientWidth * 0.72 + 14, behavior: 'smooth' });
+      }
+    });
+  });
   if (deck && !reduced && window.innerWidth > 820) {
     var deckCards = $$('.deck-card', deck);
     var deckN = deckCards.length;
@@ -167,11 +182,23 @@
       };
       var startDeck = function () {
         if (deckTimer) return;
-        deckTimer = setInterval(function () { deckShift += 1; paintDeck(); }, 4200);
+        deckTimer = setInterval(function () { deckShift += 1; paintDeck(); }, 2600);
       };
       var stopDeck = function () {
         if (deckTimer) { clearInterval(deckTimer); deckTimer = null; }
       };
+      var stepDeck = function (step) {
+        deckShift += step;
+        paintDeck();
+        stopDeck();
+        if (!deck.matches(':hover') && !deck.contains(document.activeElement)) startDeck();
+      };
+      $$('[data-deck-prev]', deck.parentNode).forEach(function (btn) {
+        btn.addEventListener('click', function () { stepDeck(-1); });
+      });
+      $$('[data-deck-next]', deck.parentNode).forEach(function (btn) {
+        btn.addEventListener('click', function () { stepDeck(1); });
+      });
       deck.addEventListener('mouseenter', stopDeck);
       deck.addEventListener('mouseleave', startDeck);
       deck.addEventListener('focusin', stopDeck);
