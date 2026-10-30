@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import re
 import threading
 import time
 import traceback
+from html import unescape
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 from . import (
     clean,
@@ -411,6 +414,22 @@ def _target_words(duration_s: int, transcript_chars: int, chars_per_word: int = 
     return target, note, f"{int(minutes)} 分钟"
 
 
+def _first_wechat_image(html: str) -> str:
+    """公众号没有 og:image 时，退而取正文第一张非 gif 图。"""
+    for m in re.finditer(r'<img[^>]+(?:data-src|src)="([^"]+)"', html or "", re.I):
+        url = unescape(m.group(1))
+        if not url.startswith(("http://", "https://")) or ".gif" in url.lower():
+            continue
+        # wechat2rss 的 img-proxy 会被 Cloudflare 拦；解开 u= 参数直连图片。
+        parsed = urlparse(url)
+        if "wechat2rss.xlab.app" in parsed.netloc:
+            direct = parse_qs(parsed.query).get("u", [""])[0]
+            if direct:
+                url = direct
+        return url
+    return ""
+
+
 def _process_wechat(run: dict, target: dict) -> dict | None:
     """公众号文章：直接抓正文，没有下载与转写两步。"""
     key = target.get("key") or wechat_source.article_id(target["url"])
@@ -468,6 +487,14 @@ def _process_wechat(run: dict, target: dict) -> dict | None:
         clone_url = ""
         clone_html = ""
         ctx = {}
+
+    # 公众号常常没有 og:image；从正文/克隆正文里取第一张非 gif 图做封面，
+    # 否则这一期在首页就没有缩略图。
+    if not cover_path.exists():
+        for source_html in (art.get("html", ""), clone_html):
+            img = _first_wechat_image(source_html)
+            if img and wechat_source.download_cover(img, cover_path):
+                break
 
     _set(item, run, state="done", detail="完成")
     return {
