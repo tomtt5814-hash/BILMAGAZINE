@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#08090b" id="theme-color">
+<meta name="theme-color" content="#efe7d6" id="theme-color">
 <title>博主日报杂志 · 高动效版</title>
 <script>
 try{
   var q=new URLSearchParams(location.search).get('theme');
   if(q==='day'||q==='night')localStorage.setItem('bilmag.siteTheme',q);
-  document.documentElement.dataset.theme=localStorage.getItem('bilmag.siteTheme')||'night';
+  document.documentElement.dataset.theme=localStorage.getItem('bilmag.siteTheme')||'day';
   localStorage.setItem('bilmag.siteTheme',document.documentElement.dataset.theme);
-}catch(e){document.documentElement.dataset.theme='night';}
+}catch(e){document.documentElement.dataset.theme='day';}
 </script>
 <link rel="stylesheet" href="/static/app.css">
 <script>document.documentElement.classList.add('js');</script>
@@ -33,9 +33,9 @@ try{
       <a href="/manage">订阅</a>
       <a href="/manage">控制台</a>
       {% endif %}
-      <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换到白天模式" aria-pressed="false">
-        <span class="theme-toggle__icon" data-theme-icon aria-hidden="true">☀</span>
-        <span class="theme-toggle__text" data-theme-text>白天</span>
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换到黑夜模式" aria-pressed="true">
+        <span class="theme-toggle__icon" data-theme-icon aria-hidden="true">☾</span>
+        <span class="theme-toggle__text" data-theme-text>黑夜</span>
       </button>
     </nav>
     {% if not public_site %}
@@ -175,10 +175,6 @@ try{
       </div>
       <div class="deck-controls">
         <p class="deck-hint">悬停暂停 · 点击卡片进入 · 手机左右滑</p>
-        <div class="deck-nav" aria-label="切换往期">
-          <button type="button" class="deck-nav__btn" data-deck-prev aria-label="上一期">←</button>
-          <button type="button" class="deck-nav__btn" data-deck-next aria-label="下一期">→</button>
-        </div>
       </div>
     </div>
     {% else %}

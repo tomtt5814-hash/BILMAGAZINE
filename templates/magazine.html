@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#08090b">
+<meta name="theme-color" content="#efe7d6">
 <title>{{ m.headline }} · 博主日报</title>
 <style>
   :root{
@@ -292,6 +292,23 @@
   .vbtn.on{background:var(--acid);color:#0a0b0c}
   .vbtn.on:hover{background:var(--acid);color:#0a0b0c}
 
+  .next-story{
+    position:fixed;right:22px;bottom:74px;z-index:92;
+    display:inline-flex;align-items:center;gap:7px;padding:9px 14px;
+    border:1px solid #2a3038;border-radius:999px;background:rgba(10,12,15,.92);
+    color:#f4f1e8;font:600 11px/1 var(--sans);letter-spacing:.08em;cursor:pointer;
+    box-shadow:0 8px 24px rgba(0,0,0,.32);
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+    transition:background .2s var(--ease),color .2s var(--ease),border-color .2s var(--ease),transform .2s var(--ease),opacity .2s;
+  }
+  .next-story:hover{background:var(--acid);border-color:var(--acid);color:#0a0b0c;transform:translateY(-2px)}
+  .next-story:active{transform:scale(.97)}
+  .next-story[hidden]{display:none}
+  body.tb-open .next-story{opacity:0;pointer-events:none;transform:translateY(6px)}
+  @media (max-width:900px){
+    .next-story{right:12px;bottom:70px;padding:10px 13px;font-size:11px}
+  }
+
   .toolbox{
     position:fixed;right:18px;bottom:74px;z-index:95;width:328px;
     max-height:calc(100vh - 110px);overflow:auto;overscroll-behavior:contain;
@@ -410,6 +427,19 @@
     .story__fig img{max-height:420px}
     .story__pull{font-size:19px}
   }
+  @media (max-width:640px){
+    .story{grid-template-columns:1fr;gap:0;padding:30px 0;scroll-margin-top:76px}
+    .story__rail{display:none}
+    .story__text>p,.zh-line,.story__pull{max-width:min(30ch,calc(100vw - 56px));margin-left:auto;margin-right:auto}
+    .wx-inline p{max-width:min(30ch,calc(100vw - 56px));margin-left:auto;margin-right:auto}
+    .story__text{margin-top:20px}
+    .talk{max-width:min(30ch,calc(100vw - 56px));margin-left:auto;margin-right:auto}
+    .tb-block--measure{display:none}
+    .toolbox input[type=range]{height:28px}
+    .toolbox input[type=range]::-webkit-slider-thumb{width:16px;height:16px;margin-top:-7px}
+    .next-story{width:46px;height:46px;padding:0;justify-content:center;border-radius:50%;bottom:70px}
+    .next-story__label{display:none}
+  }
   @media print{
     body{background:#fff;color:#000}
     .topbar,.vctl,.toolbox,.scroll-line{display:none!important}
@@ -438,8 +468,8 @@
 <header class="topbar">
   <a class="topbar__brand" href="/"><b>BILMASSAGE</b><span>博主日报</span></a>
   <span class="topbar__issue"><b>ISSUE {{ m.issue }}</b> &nbsp;·&nbsp; {{ m.day }} &nbsp;·&nbsp; {{ m.articles|length }} STORIES</span>
-  <button class="topbar__theme" id="site-theme" type="button" aria-label="切换到白天模式" aria-pressed="false">
-    <span id="site-theme-icon" aria-hidden="true">☀</span><span id="site-theme-text">白天</span>
+  <button class="topbar__theme" id="site-theme" type="button" aria-label="切换到夜间模式" aria-pressed="true">
+    <span id="site-theme-icon" aria-hidden="true">☾</span><span id="site-theme-text">夜间</span>
   </button>
   <a class="topbar__back" href="/">← 返回首页</a>
 </header>
@@ -544,6 +574,10 @@
   <button type="button" class="vbtn" data-toggle="adv" aria-pressed="false">超纲词释义</button>
 </div>
 
+<button type="button" class="next-story" id="next-story" aria-label="跳到下一篇">
+  <span class="next-story__label">下一篇</span> <span aria-hidden="true">↓</span>
+</button>
+
 <div class="toolbox" id="toolbox" hidden role="dialog" aria-labelledby="tb-title">
   <div class="tb-head">
     <span class="tb-title" id="tb-title">阅读设置</span>
@@ -565,7 +599,7 @@
     <div class="tb-row"><span class="tb-label">释义</span><em id="fs-gloss-v" aria-hidden="true"></em></div>
     <input type="range" id="fs-gloss" min="9" max="18" step="1" aria-label="释义小字字号">
   </div>
-  <div class="tb-block">
+  <div class="tb-block tb-block--measure">
     <span class="tb-eyebrow">行宽</span>
     <div class="tb-row"><span class="tb-label">每行字符</span><em id="measure-v" aria-hidden="true"></em></div>
     <div class="tb-scale">
@@ -632,7 +666,7 @@
   );
 
   var KEY='bilmag.prefs';
-  var prefs={theme:'night',body:18,zh:15,gloss:11,measure:74};
+  var prefs={theme:'day',body:18,zh:15,gloss:11,measure:74};
   try{Object.assign(prefs,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}
   try{
     var qp=new URLSearchParams(location.search);
@@ -690,6 +724,7 @@
     if(open) tb.removeAttribute('hidden'); else tb.setAttribute('hidden','');
     openBtn.classList.toggle('on',open);
     openBtn.setAttribute('aria-expanded',String(open));
+    document.body.classList.toggle('tb-open',open);
   }
   if(openBtn&&tb){
     openBtn.addEventListener('click',function(){setToolbox(tb.hasAttribute('hidden'));});
@@ -714,6 +749,21 @@
     el.addEventListener('input',function(){prefs[k]=Number(el.value);apply();});
   });
   apply();
+
+  var nextBtn=document.getElementById('next-story');
+  var stories=[].slice.call(document.querySelectorAll('.story'));
+  if(nextBtn){
+    if(stories.length<2){nextBtn.hidden=true;}
+    else nextBtn.addEventListener('click',function(){
+      var threshold=window.innerWidth<=900?120:100;
+      var current=-1;
+      stories.forEach(function(s,i){
+        if(s.getBoundingClientRect().top<=threshold) current=i;
+      });
+      var next=stories[current+1]||stories[0];
+      next.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+    });
+  }
 
   window.addEventListener('storage',function(e){
     if(e.key==='bilmag.siteTheme'&&(e.newValue==='day'||e.newValue==='night')&&e.newValue!==prefs.theme){
