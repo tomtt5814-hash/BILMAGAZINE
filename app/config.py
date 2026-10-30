@@ -59,6 +59,9 @@ COMMENTS_TOP_N = int(_get("COMMENTS_TOP_N", "5") or 5)
 SCHEDULE_ENABLED = _get("SCHEDULE_ENABLED", "0") == "1"
 SCHEDULE_TIME = _get("SCHEDULE_TIME", "22:30")
 
+# 成功生成一期后，自动导出并部署到 Cloudflare Pages；需要本机已登录 wrangler。
+AUTO_PUBLISH = _get("AUTO_PUBLISH", "0") == "1"
+
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"

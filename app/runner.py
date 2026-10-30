@@ -15,6 +15,7 @@ from . import (
     fetch,
     llm,
     magazine,
+    publish,
     rss_source,
     source,
     store,
@@ -181,6 +182,10 @@ def _execute(run: dict, bvids: list[str] | None, demo: bool = False,
 
         if articles:
             _generate_magazine(run, articles)
+            if config.AUTO_PUBLISH and not run.get("demo"):
+                ok, msg = publish.publish_pages()
+                run["publish"] = {"ok": ok, "note": msg[-800:]}
+                print(f"[publish] ok={ok} {msg[-300:]}", flush=True)
             run["status"] = "done"
         else:
             run["status"] = "done"

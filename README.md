@@ -34,6 +34,9 @@ npx wrangler pages deploy site --project-name bilmagazine --branch main
   杂志页，断网时回落到 `offline.html`。手机用浏览器“添加到主屏幕/安装应用”即可。Service Worker
   只会在 HTTPS 或 `localhost` / `127.0.0.1` 下注册。修改缓存策略后记得提升 `static/sw.js` 里的
   `VERSION`，否则旧缓存不会主动清掉。
+- **生成后自动上线**：在本机用户环境变量里设 `AUTO_PUBLISH=1` 后，每次成功生成一期（非演示模式）
+  会依次执行导出和 Pages 部署；需要本机已登录 `wrangler` 且 Node.js 在 PATH 里。发布失败只写进
+  运行记录，不会把已经生成的杂志标成失败；生成和发布仍然依赖本机在线。
 
 ---
 

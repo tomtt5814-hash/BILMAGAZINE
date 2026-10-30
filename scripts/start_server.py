@@ -17,7 +17,7 @@ LOG.parent.mkdir(parents=True, exist_ok=True)
 
 # 从注册表补齐用户级环境变量：无论被启动项、计划任务还是手动拉起，都能拿到 key 与开关。
 # 项目自己的配置项以注册表为准（覆盖从父进程继承来的旧值），其余变量保持继承。
-OWN = ("LLM_", "SCHEDULE_", "WECHAT_", "BILI_", "TRANSCRIBE_", "FASTER_", "RSS_", "ASR_")
+OWN = ("LLM_", "SCHEDULE_", "AUTO_", "WECHAT_", "BILI_", "TRANSCRIBE_", "FASTER_", "RSS_", "ASR_")
 try:
     import winreg
 
