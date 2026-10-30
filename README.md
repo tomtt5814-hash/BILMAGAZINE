@@ -184,8 +184,9 @@ B 站空间投稿接口对未登录请求返回 412 风控，但**你的浏览�
 **定时**：`scripts/start_server.py` 被 `pythonw` 拉起后，会常驻并按 `SCHEDULE_TIME`（默认 22:30）自动跑一次。
 两个前提：
 
-1. 服务在跑 —— 已注册到启动文件夹（`shell:startup\bili-magazine.bat`），登录后自动拉起，
-   崩溃后重新登录即可恢复；也可以手动双击 `scripts/start_server.bat`。
+1. 服务在跑 —— 已注册到启动文件夹（`shell:startup\BILMAGAZINE Server.vbs`），登录后隐藏拉起；
+   启动器带单实例检查，不会重复开第二个进程。它不负责崩溃守护，进程异常退出后重新登录，
+   或手动双击 `scripts/start_server.bat` 即可恢复。
 2. 电脑不睡眠 —— 实测交流电源下睡眠超时为 0（不睡），电池下 10 分钟。
 
 配置放在 **Windows 用户级环境变量**里（不是 `.env`，那个文件名写盘会被安全策略拦截）：
