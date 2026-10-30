@@ -5,3 +5,6 @@ __pycache__/
 data/
 tools/
 tmp-*.png
+
+# DSH project-local agent config and skills (installed on this machine)
+.dsh/
