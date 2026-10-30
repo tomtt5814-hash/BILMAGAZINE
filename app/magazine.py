@@ -11,6 +11,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from . import config, vocab
+from .wechat_clone import sanitize_html
 
 html_escape = html.escape
 
@@ -111,7 +112,7 @@ def render_magazine(day: str, issue: int, headline: str, lede: str, articles: li
                 "url": a.get("url", ""),
                 "orig_url": a.get("orig_url", ""),
                 "full_page": a.get("full_page", ""),
-                "clone_html": a.get("clone_html", ""),
+                "clone_html": sanitize_html(a.get("clone_html", "")),
                 "rpid": a.get("rpid") or "",
                 "comments": a.get("comments") or [],
                 "icon_svg": ICONS[ICON_ORDER[i % len(ICON_ORDER)]],
@@ -155,7 +156,7 @@ def render_magazine(day: str, issue: int, headline: str, lede: str, articles: li
                 "url": a.get("url", ""),
                 "orig_url": a.get("orig_url", ""),
                 "full_page": a.get("full_page", ""),
-                "clone_html": a.get("clone_html", ""),
+                "clone_html": sanitize_html(a.get("clone_html", "")),
                 "ctx_gloss": a.get("ctx_gloss") or {},
                 "rpid": a.get("rpid") or "",
                 "comments": a.get("comments") or [],

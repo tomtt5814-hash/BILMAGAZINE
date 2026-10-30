@@ -18,6 +18,51 @@ from lxml import etree, html as lxml_html
 from . import config, llm, vocab
 
 SKIP_TAGS = {"script", "style", "svg", "iframe", "video", "audio"}
+# Tags that can execute, navigate, submit, or load another document. The
+# cloned article only needs text, simple block wrappers and images.
+DROP_TAGS = SKIP_TAGS | {
+    "object", "embed", "applet", "form", "input", "button", "select", "textarea",
+    "link", "meta", "base", "source", "track", "portal",
+}
+BAD_URL_PREFIX = ("javascript:", "vbscript:", "data:text/html")
+
+
+def sanitize_fragment(root: etree._Element) -> None:
+    """Remove executable/navigation surface from a cloned article fragment.
+
+    The source is an arbitrary third-party page, so whitelisting text is not
+    enough: event-handler attributes, javascript: URLs and embedded documents
+    must not survive into the public reading page.
+    """
+    for el in list(root.iter()):
+        if not isinstance(el.tag, str):
+            continue
+        if el.tag.lower() in DROP_TAGS:
+            el.drop_tree()
+            continue
+        for attr in list(el.attrib):
+            low = attr.lower()
+            value = (el.get(attr) or "").strip()
+            if low.startswith("on") or low in {"srcdoc", "formaction"}:
+                del el.attrib[attr]
+            elif low in {"href", "src", "xlink:href", "poster", "action"} and value.lower().startswith(BAD_URL_PREFIX):
+                del el.attrib[attr]
+            elif low == "style" and re.search(r"expression\s*\(|javascript:", value, re.I):
+                del el.attrib[attr]
+
+
+def sanitize_html(fragment: str) -> str:
+    """Sanitize a stored clone_html string; safe to call at render time."""
+    if not fragment:
+        return ""
+    try:
+        root = lxml_html.fragment_fromstring(fragment, create_parent="div")
+    except (etree.ParserError, ValueError):
+        return ""
+    sanitize_fragment(root)
+    return "".join(
+        lxml_html.tostring(ch, encoding="unicode") for ch in root if isinstance(ch.tag, str)
+    )
 
 SHELL = """<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8">
@@ -250,6 +295,8 @@ def build_content(article: dict, ctx: dict[str, str] | None = None) -> str:
     for el in root.iter():
         if isinstance(el.tag, str):
             _strip_inline_font(el)
+
+    sanitize_fragment(root)
 
     return "".join(
         lxml_html.tostring(ch, encoding="unicode") for ch in root if isinstance(ch.tag, str)

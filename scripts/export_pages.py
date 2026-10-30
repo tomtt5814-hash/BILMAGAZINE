@@ -76,6 +76,15 @@ def main() -> int:
         if src.exists():
             shutil.copyfile(src, SITE / "static" / name)
 
+    (SITE / "_headers").write_text(
+        "/*\n"
+        "  X-Content-Type-Options: nosniff\n"
+        "  Referrer-Policy: strict-origin-when-cross-origin\n"
+        "  Permissions-Policy: camera=(), microphone=(), geolocation=()\n"
+        "  X-Frame-Options: SAMEORIGIN\n"
+        "  Content-Security-Policy: frame-ancestors 'self'\n",
+        encoding="utf-8",
+    )
     (SITE / "robots.txt").write_text("User-agent: *\nAllow: /\n", encoding="utf-8")
     (SITE / "404.html").write_text(
         '<!doctype html><meta charset="utf-8"><title>404</title>'
