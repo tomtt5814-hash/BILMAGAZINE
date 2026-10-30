@@ -23,12 +23,17 @@ npx wrangler pages deploy site --project-name bilmagazine --branch main
 - 第一次需要 `npx wrangler login`，浏览器授权后即可；免费地址形如
   `https://bilmagazine.pages.dev`。若项目名被占用，换 `bilmagazine-site` 或 `bilmagazine-cn`。
 - `scripts/export_pages.py` 会把首页、5 期杂志、封面缩略图、`static/app.css`、
-  `static/shell.js`、`robots.txt`、`404.html` 导出到 `site/`；`site/` 和 `.wrangler/` 已忽略，
+  `static/shell.js`、`robots.txt`、`404.html` 以及 PWA 的 `manifest.webmanifest`、`sw.js`、
+  `offline.html`、`static/icons/` 导出到 `site/`；`site/` 和 `.wrangler/` 已忽略，
   不进入 Git。
 - 公开站用 `public_site` 渲染：隐藏「订阅 / 控制台 / 生成新一期 / 管理订阅」，只保留阅读、
   往期和主题切换；本机 `127.0.0.1:8000` 仍保留完整后台。
 - Pages 上的是**导出那一刻**的 5 期；以后生成新一期，要重新跑导出和部署。自定义域名以后
   再在 Pages 项目里绑定即可。
+- **PWA**：`manifest.webmanifest` 提供独立窗口、图标和主题色；`sw.js` 缓存应用外壳与访问过的
+  杂志页，断网时回落到 `offline.html`。手机用浏览器“添加到主屏幕/安装应用”即可。Service Worker
+  只会在 HTTPS 或 `localhost` / `127.0.0.1` 下注册。修改缓存策略后记得提升 `static/sw.js` 里的
+  `VERSION`，否则旧缓存不会主动清掉。
 
 ---
 

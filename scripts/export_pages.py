@@ -76,13 +76,29 @@ def main() -> int:
         if src.exists():
             shutil.copyfile(src, SITE / "static" / name)
 
+    # PWA：manifest 与 service worker 必须放在站点根路径，图标沿用 /static/icons。
+    for name in ("manifest.webmanifest", "sw.js", "offline.html"):
+        src = ROOT / "static" / name
+        if src.exists():
+            shutil.copyfile(src, SITE / name)
+    icons = ROOT / "static" / "icons"
+    if icons.exists():
+        shutil.copytree(icons, SITE / "static" / "icons", dirs_exist_ok=True)
+
     (SITE / "_headers").write_text(
         "/*\n"
         "  X-Content-Type-Options: nosniff\n"
         "  Referrer-Policy: strict-origin-when-cross-origin\n"
         "  Permissions-Policy: camera=(), microphone=(), geolocation=()\n"
         "  X-Frame-Options: SAMEORIGIN\n"
-        "  Content-Security-Policy: frame-ancestors 'self'\n",
+        "  Content-Security-Policy: frame-ancestors 'self'\n"
+        "\n"
+        "/sw.js\n"
+        "  Cache-Control: no-cache\n"
+        "\n"
+        "/manifest.webmanifest\n"
+        "  Content-Type: application/manifest+json\n"
+        "  Cache-Control: public, max-age=3600\n",
         encoding="utf-8",
     )
     (SITE / "robots.txt").write_text("User-agent: *\nAllow: /\n", encoding="utf-8")

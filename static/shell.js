@@ -255,4 +255,12 @@
   setTimeout(function () { root.classList.add('veil-done'); }, 60);
   setTimeout(function () { root.classList.add('veil-gone'); }, 900);
 
+  /* ---------- PWA ---------- */
+  if ('serviceWorker' in navigator &&
+      (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js').catch(function () {});
+    });
+  }
+
 })();
