@@ -29,17 +29,21 @@ try{
     </a>
     <nav aria-label="主导航">
       <a href="#archive">往期</a>
+      {% if not public_site %}
       <a href="/manage">订阅</a>
       <a href="/manage">控制台</a>
+      {% endif %}
       <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换到白天模式" aria-pressed="false">
         <span class="theme-toggle__icon" data-theme-icon aria-hidden="true">☀</span>
         <span class="theme-toggle__text" data-theme-text>白天</span>
       </button>
     </nav>
+    {% if not public_site %}
     <a class="nav-cta" href="/manage">
       生成新一期
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
     </a>
+    {% endif %}
   </header>
 
   {% if active_run %}
@@ -75,7 +79,11 @@ try{
           阅读本期
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
         </a>
+        {% if not public_site %}
         <a class="btn magnet" data-magnet="8" href="/manage">管理订阅</a>
+        {% else %}
+        <a class="btn magnet" data-magnet="8" href="#archive">往期存档</a>
+        {% endif %}
       </div>
 
       <div class="hero-meta">
@@ -171,7 +179,7 @@ try{
     <div class="empty-state reveal">
       <h2>第一期已经在这里。</h2>
       <p>明晚 22:30 之后，这里会长出第二期。</p>
-      <a class="btn btn--acid" href="/manage">先去控制台看看</a>
+      {% if not public_site %}<a class="btn btn--acid" href="/manage">先去控制台看看</a>{% endif %}
     </div>
     {% endif %}
   </section>
@@ -182,15 +190,20 @@ try{
     <p class="eyebrow" style="justify-content:center">NO ISSUE YET</p>
     <h2>还没有第一期。</h2>
     <p>订阅几个博主，或者先用演示数据生成一期。</p>
-    <a class="btn btn--acid" href="/manage">去生成第一期</a>
+    {% if not public_site %}<a class="btn btn--acid" href="/manage">去生成第一期</a>{% endif %}
   </div>
 </main>
 {% endif %}
 
 <div class="shell">
   <footer class="site-foot">
+    {% if public_site %}
+    <span>{{ mags|length }} 期存档 · 公开阅读站 · 本地生成</span>
+    <span><a href="https://github.com/tomtt5814-hash/project-bilmassage">源码 ↗</a></span>
+    {% else %}
     <span>{{ mags|length }} 期存档 · 本地生成 · 仅个人阅读</span>
     <span><a href="/manage">管理和生成 ↗</a></span>
+    {% endif %}
   </footer>
 </div>
 </body>

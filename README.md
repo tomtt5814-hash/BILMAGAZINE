@@ -10,6 +10,26 @@
 - **纸浆风格版**（`main` / `纸浆风格版` 分支）：奶白纸张、墨色正文、编辑室气质，阅读页以纸面为主。
 - **高动效版**（当前分支 `高动效版`）：同样的功能与数据，前端完全重写。默认是近黑底 + 酸性绿的编辑室风格；导航栏可切到「粗野白天」——纸张底色、墨黑硬边、硬阴影和酸绿色块，Hero、统计条、面板会整体重排。首页往期是 5 张带封面的 3D 卡片轮播，阅读页仍是可读性优先的纸张阅读面，只在报头、章节入场和控件上做克制动效。
 
+## 发布公开阅读站（Cloudflare Pages，可选）
+
+生成、转写、调度和控制台都留在本机；Cloudflare 只托管**已经生成好的首页与杂志**。不需要买域名，
+先用 Pages 的免费子域即可。
+
+```bash
+python scripts/export_pages.py
+npx wrangler pages deploy site --project-name bilmagazine --branch main
+```
+
+- 第一次需要 `npx wrangler login`，浏览器授权后即可；免费地址形如
+  `https://bilmagazine.pages.dev`。若项目名被占用，换 `bilmagazine-site` 或 `bilmagazine-cn`。
+- `scripts/export_pages.py` 会把首页、5 期杂志、封面缩略图、`static/app.css`、
+  `static/shell.js`、`robots.txt`、`404.html` 导出到 `site/`；`site/` 和 `.wrangler/` 已忽略，
+  不进入 Git。
+- 公开站用 `public_site` 渲染：隐藏「订阅 / 控制台 / 生成新一期 / 管理订阅」，只保留阅读、
+  往期和主题切换；本机 `127.0.0.1:8000` 仍保留完整后台。
+- Pages 上的是**导出那一刻**的 5 期；以后生成新一期，要重新跑导出和部署。自定义域名以后
+  再在 Pages 项目里绑定即可。
+
 ---
 
 ## 现在能跑到哪一步

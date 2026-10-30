@@ -6,5 +6,9 @@ data/
 tools/
 tmp-*.png
 
+# Cloudflare Pages export and local Wrangler state
+site/
+.wrangler/
+
 # DSH project-local agent config and skills (installed on this machine)
 .dsh/
