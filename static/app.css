@@ -689,12 +689,27 @@ td .sub-uid{display:inline-block;max-width:24ch;overflow:hidden;text-overflow:el
   }
   .deck-card{
     position:relative;left:auto;top:auto;margin:0;flex:0 0 72%;width:72%;height:auto;
-    transform:none;opacity:1;z-index:auto;backface-visibility:visible;scroll-snap-align:start;
+    transform:none;translate:0 0;scale:1;opacity:1;z-index:auto;backface-visibility:visible;
+    scroll-snap-align:start;
+  }
+  /* 手机是横向滑动，不要套用桌面的 hover 放大/抬升，否则点一下就会盖住邻卡 */
+  .deck-card:hover,.deck-card:focus-visible{
+    --hoverScale:1;--lift:0;
+    translate:0 0;scale:1;z-index:auto;
+    border-color:var(--line-2);background:var(--panel);
+    box-shadow:0 10px 24px rgba(0,0,0,.2);
   }
   .deck-hint{text-align:left}
   .form-grid{grid-template-columns:1fr}
   .field--grow,.field--sm,.field--wide{grid-column:auto}
   .site-foot{flex-direction:column;gap:10px}
+}
+/* 触屏设备没有真正的 hover：点按不应触发桌面版的 1.5x 抬升 */
+@media (hover:none){
+  .deck-card:hover,.deck-card:focus-visible{
+    --hoverScale:1;--lift:0;translate:0 0;scale:1;z-index:auto;
+    box-shadow:0 10px 24px rgba(0,0,0,.2);
+  }
 }
 /* =========================================================
    白天 · 粗野主义
