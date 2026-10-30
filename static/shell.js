@@ -146,6 +146,69 @@
     });
   }
 
+  /* ---------- 往期卡片轮播 ---------- */
+  var deck = $('.deck-stage');
+  if (deck && !reduced && window.innerWidth > 820) {
+    var deckCards = $$('.deck-card', deck);
+    var deckN = deckCards.length;
+    if (deckN > 2) {
+      var deckMid = Math.floor(deckN / 2);
+      var deckShift = deckMid;
+      var deckTimer = null;
+      var paintDeck = function () {
+        deckCards.forEach(function (card, i) {
+          var pos = ((i + deckShift) % deckN + deckN) % deckN - deckMid;
+          var abs = Math.abs(pos);
+          card.style.setProperty('--pos', pos);
+          card.style.setProperty('--abs', abs);
+          card.setAttribute('aria-hidden', abs > 2 ? 'true' : 'false');
+          card.tabIndex = abs > 2 ? -1 : 0;
+        });
+      };
+      var startDeck = function () {
+        if (deckTimer) return;
+        deckTimer = setInterval(function () { deckShift += 1; paintDeck(); }, 4200);
+      };
+      var stopDeck = function () {
+        if (deckTimer) { clearInterval(deckTimer); deckTimer = null; }
+      };
+      deck.addEventListener('mouseenter', stopDeck);
+      deck.addEventListener('mouseleave', startDeck);
+      deck.addEventListener('focusin', stopDeck);
+      deck.addEventListener('focusout', function (e) {
+        if (!deck.contains(e.relatedTarget)) startDeck();
+      });
+      paintDeck();
+      startDeck();
+    }
+  }
+
+  /* ---------- 白天 / 黑夜 ---------- */
+  var themeBtns = $$('[data-theme-toggle]');
+  function themeNow() { return root.dataset.theme === 'day' ? 'day' : 'night'; }
+  function paintTheme() {
+    var day = themeNow() === 'day';
+    themeBtns.forEach(function (btn) {
+      var icon = $('[data-theme-icon]', btn);
+      var text = $('[data-theme-text]', btn);
+      if (icon) icon.textContent = day ? '☾' : '☀';
+      if (text) text.textContent = day ? '黑夜' : '白天';
+      btn.setAttribute('aria-pressed', String(day));
+      btn.setAttribute('aria-label', day ? '切换到黑夜模式' : '切换到白天模式');
+    });
+    var meta = document.getElementById('theme-color');
+    if (meta) meta.setAttribute('content', day ? '#efe7d6' : '#08090b');
+  }
+  function setTheme(next) {
+    root.dataset.theme = next === 'day' ? 'day' : 'night';
+    try { localStorage.setItem('bilmag.siteTheme', root.dataset.theme); } catch (e) {}
+    paintTheme();
+  }
+  themeBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () { setTheme(themeNow() === 'day' ? 'night' : 'day'); });
+  });
+  paintTheme();
+
   /* ---------- 页面幕布 ---------- */
   setTimeout(function () { root.classList.add('veil-done'); }, 60);
   setTimeout(function () { root.classList.add('veil-gone'); }, 900);

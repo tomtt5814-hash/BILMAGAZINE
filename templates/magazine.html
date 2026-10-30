@@ -60,6 +60,15 @@
     transition:border-color .2s var(--ease),background .2s var(--ease),transform .2s var(--ease);
   }
   .topbar__back:hover{border-color:var(--acid);color:var(--acid);transform:translateY(-1px)}
+  .topbar__theme{
+    flex:none;display:inline-flex;align-items:center;gap:6px;
+    background:transparent;color:#f4f1e8;border:1px solid #2b3038;border-radius:999px;
+    padding:6px 10px;font-family:var(--sans);font-size:11px;letter-spacing:.04em;cursor:pointer;
+    transition:border-color .2s var(--ease),color .2s var(--ease),background .2s var(--ease),transform .2s var(--ease);
+  }
+  .topbar__theme span:first-child{font-size:13px;line-height:1}
+  .topbar__theme:hover{border-color:var(--acid);color:var(--acid);transform:translateY(-1px)}
+  .topbar__theme[aria-pressed="true"]{background:rgba(223,255,63,.10);border-color:rgba(223,255,63,.45)}
   .scroll-line{position:fixed;left:0;right:0;top:0;height:2px;z-index:101;pointer-events:none}
   .scroll-line i{display:block;height:100%;width:0;background:var(--acid)}
 
@@ -418,6 +427,9 @@
 <header class="topbar">
   <a class="topbar__brand" href="/"><b>BILMASSAGE</b><span>博主日报</span></a>
   <span class="topbar__issue"><b>ISSUE {{ m.issue }}</b> &nbsp;·&nbsp; {{ m.day }} &nbsp;·&nbsp; {{ m.articles|length }} STORIES</span>
+  <button class="topbar__theme" id="site-theme" type="button" aria-label="切换到白天模式" aria-pressed="false">
+    <span id="site-theme-icon" aria-hidden="true">☀</span><span id="site-theme-text">白天</span>
+  </button>
   <a class="topbar__back" href="/">← 返回首页</a>
 </header>
 
@@ -609,11 +621,15 @@
   );
 
   var KEY='bilmag.prefs';
-  var prefs={theme:'day',body:18,zh:15,gloss:11,measure:74};
+  var prefs={theme:'night',body:18,zh:15,gloss:11,measure:74};
   try{Object.assign(prefs,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}
   try{
     var qp=new URLSearchParams(location.search);
     if(qp.get('theme')==='night'||qp.get('theme')==='day') prefs.theme=qp.get('theme');
+    else{
+      var siteTheme=localStorage.getItem('bilmag.siteTheme');
+      if(siteTheme==='night'||siteTheme==='day') prefs.theme=siteTheme;
+    }
   }catch(e){}
   function clamp(n,lo,hi,fallback){
     n=Number(n);if(!isFinite(n))return fallback;return Math.min(hi,Math.max(lo,n));
@@ -625,6 +641,17 @@
 
   function apply(){
     document.body.classList.toggle('night',prefs.theme==='night');
+    try{localStorage.setItem('bilmag.siteTheme',prefs.theme);}catch(e){}
+    var sb=document.getElementById('site-theme');
+    if(sb){
+      var isNight=prefs.theme==='night';
+      sb.setAttribute('aria-pressed',String(!isNight));
+      sb.setAttribute('aria-label',isNight?'切换到白天模式':'切换到夜间模式');
+      var si=document.getElementById('site-theme-icon');
+      var st=document.getElementById('site-theme-text');
+      if(si) si.textContent=isNight?'☀':'☾';
+      if(st) st.textContent=isNight?'白天':'夜间';
+    }
     document.documentElement.style.setProperty('--fs-body',prefs.body+'px');
     document.documentElement.style.setProperty('--fs-zh',prefs.zh+'px');
     document.documentElement.style.setProperty('--fs-gloss',prefs.gloss+'px');
@@ -665,6 +692,10 @@
   }
   document.querySelectorAll('.tb-seg').forEach(function(b){
     b.addEventListener('click',function(){prefs.theme=b.getAttribute('data-theme');apply();});
+  });
+  var siteBtn=document.getElementById('site-theme');
+  if(siteBtn) siteBtn.addEventListener('click',function(){
+    prefs.theme=prefs.theme==='night'?'day':'night';apply();
   });
   ['body','zh','gloss','measure'].forEach(function(k){
     var el=document.getElementById(k==='measure'?'measure':'fs-'+k);

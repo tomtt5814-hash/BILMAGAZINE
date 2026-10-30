@@ -3,8 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#08090b">
+<meta name="theme-color" content="#08090b" id="theme-color">
 <title>控制台 · 博主日报杂志</title>
+<script>
+try{
+  var q=new URLSearchParams(location.search).get('theme');
+  if(q==='day'||q==='night')localStorage.setItem('bilmag.siteTheme',q);
+  document.documentElement.dataset.theme=localStorage.getItem('bilmag.siteTheme')||'night';
+  localStorage.setItem('bilmag.siteTheme',document.documentElement.dataset.theme);
+}catch(e){document.documentElement.dataset.theme='night';}
+</script>
 <link rel="stylesheet" href="/static/app.css">
 <script>document.documentElement.classList.add('js');</script>
 <script src="/static/shell.js" defer></script>
@@ -23,6 +31,10 @@
       <a href="/">首页</a>
       <a href="#subscriptions">订阅</a>
       <a href="#run">运行</a>
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换到白天模式" aria-pressed="false">
+        <span class="theme-toggle__icon" data-theme-icon aria-hidden="true">☀</span>
+        <span class="theme-toggle__text" data-theme-text>白天</span>
+      </button>
     </nav>
     <a class="nav-cta" href="/">
       回到杂志

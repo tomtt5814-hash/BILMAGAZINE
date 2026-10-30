@@ -3,8 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#08090b">
+<meta name="theme-color" content="#08090b" id="theme-color">
 <title>博主日报杂志 · 高动效版</title>
+<script>
+try{
+  var q=new URLSearchParams(location.search).get('theme');
+  if(q==='day'||q==='night')localStorage.setItem('bilmag.siteTheme',q);
+  document.documentElement.dataset.theme=localStorage.getItem('bilmag.siteTheme')||'night';
+  localStorage.setItem('bilmag.siteTheme',document.documentElement.dataset.theme);
+}catch(e){document.documentElement.dataset.theme='night';}
+</script>
 <link rel="stylesheet" href="/static/app.css">
 <script>document.documentElement.classList.add('js');</script>
 <script src="/static/shell.js" defer></script>
@@ -23,6 +31,10 @@
       <a href="#archive">往期</a>
       <a href="/manage">订阅</a>
       <a href="/manage">控制台</a>
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换到白天模式" aria-pressed="false">
+        <span class="theme-toggle__icon" data-theme-icon aria-hidden="true">☀</span>
+        <span class="theme-toggle__text" data-theme-text>白天</span>
+      </button>
     </nav>
     <a class="nav-cta" href="/manage">
       生成新一期
@@ -119,16 +131,41 @@
     </div>
 
     {% if mags|length > 1 %}
-    <div class="issue-list">
-      {% for m in mags[1:] %}
-      <a class="issue-row reveal" style="--delay:{{ loop.index0 * 55 }}ms" href="/magazine/{{ m.day }}?v={{ m.mtime }}">
-        <span class="issue-row__num">NO. {{ '%03d'|format(m.issue or loop.index) }}</span>
-        <span class="issue-row__date">{{ m.day }}</span>
-        <span class="issue-row__title">{{ m.title }}</span>
-        <span class="issue-row__meta">{{ m.count }} STORIES</span>
-        <span class="issue-row__arrow" aria-hidden="true">↗</span>
-      </a>
-      {% endfor %}
+    {% set deck_n = mags|length %}
+    <div class="archive-deck reveal">
+      <div class="deck-stage">
+        <div class="deck-ring" style="--n:{{ deck_n }}">
+          {% for m in mags %}
+          {% set p = loop.index0 if loop.index0 <= deck_n//2 else loop.index0 - deck_n %}
+          <a class="deck-card" style="--pos:{{ p }};--abs:{{ p|abs }}"
+             href="/magazine/{{ m.day }}?v={{ m.mtime }}"
+             aria-label="{{ m.title }} · {{ m.day }}">
+            <span class="deck-card__top">
+              <span>{{ '本期' if loop.first else 'NO. ' ~ '%03d'|format(m.issue or loop.index) }}</span>
+              <span>{{ m.day }}</span>
+            </span>
+            <span class="deck-card__media">
+              {% if m.thumb %}
+              <img src="/magazine-thumb/{{ m.day }}" alt="" loading="lazy">
+              {% else %}
+              <span class="deck-card__empty">NO.{{ '%03d'|format(m.issue or loop.index) }}<br>ARCHIVE</span>
+              {% endif %}
+            </span>
+            <span class="deck-card__body">
+              <b>{{ m.title }}</b>
+              <em>{{ m.count }} STORIES · {{ m.bloggers|length }} VOICES</em>
+            </span>
+            <span class="deck-card__arrow" aria-hidden="true">↗</span>
+          </a>
+          {% endfor %}
+        </div>
+        <div class="deck-core" aria-hidden="true">
+          <span>ARCHIVE</span>
+          <b>{{ mags|length }}</b>
+          <em>ISSUES</em>
+        </div>
+      </div>
+      <p class="deck-hint">悬停暂停 · 点击卡片进入 · 手机左右滑</p>
     </div>
     {% else %}
     <div class="empty-state reveal">
