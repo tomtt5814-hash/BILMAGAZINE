@@ -15,6 +15,7 @@ import json
 import re
 from urllib.parse import parse_qs, urlparse
 
+import httpx
 from lxml import etree, html as lxml_html
 
 from . import config, llm, vocab
@@ -44,6 +45,40 @@ def _direct_image_url(url: str) -> str:
     except ValueError:
         return url
     return direct or url
+
+
+def _cache_emoji(img: etree._Element) -> None:
+    """Download a WeChat emoji into our own static tree.
+
+    mmbiz images are sometimes replaced by a "未经允许不可引用" placeholder
+    when the browser sends a foreign Referer.  Emoji are small, so keep a
+    same-origin copy and make the public page independent of that hotlink.
+    """
+    src = _direct_image_url(img.get("src") or "")
+    if not src.startswith(("http://", "https://")):
+        return
+    ext = "png" if ".png" in src.lower() else "jpg"
+    name = hashlib.sha1(src.encode("utf-8")).hexdigest()[:12] + "." + ext
+    cache = config.ROOT / "static" / "media" / "emoji"
+    path = cache / name
+    if not path.exists():
+        try:
+            cache.mkdir(parents=True, exist_ok=True)
+            r = httpx.get(
+                src,
+                headers={"User-Agent": "Mozilla/5.0"},
+                timeout=20,
+                follow_redirects=True,
+            )
+            r.raise_for_status()
+            path.write_bytes(r.content)
+        except Exception:
+            img.set("referrerpolicy", "no-referrer")
+            return
+    local = "/static/media/emoji/" + name
+    img.set("src", local)
+    img.set("data-src", local)
+    img.set("referrerpolicy", "no-referrer")
 
 
 def sanitize_fragment(root: etree._Element) -> None:
@@ -296,7 +331,9 @@ def _inline_emoji(el) -> list:
                 or "cp-emoji" in title
                 or 0 < w <= 96
             ):
-                out.append(copy.deepcopy(node))
+                emo = copy.deepcopy(node)
+                _cache_emoji(emo)
+                out.append(emo)
         elif tag == "span" and ("emoji" in cls or "emotion" in cls) and node.find(".//img") is None:
             m = re.search(r"url\(([^)]+)\)", style)
             if m:
@@ -304,6 +341,7 @@ def _inline_emoji(el) -> list:
                 img.set("src", m.group(1).strip("'\" "))
                 img.set("class", "wx-emoji")
                 img.set("alt", "")
+                _cache_emoji(img)
                 out.append(img)
     return out
 
