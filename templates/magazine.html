@@ -1017,6 +1017,10 @@
       if(on){
         if(typeof setToolbox==='function')setToolbox(false);
         requestAnimationFrame(function(){build(false);});
+        setTimeout(function(){if(on)build(true);},450);
+        if(document.fonts&&document.fonts.ready){
+          document.fonts.ready.then(function(){if(on)build(true);});
+        }
       }else{
         flow.innerHTML='';
       }
