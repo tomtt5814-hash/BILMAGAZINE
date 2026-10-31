@@ -12,6 +12,7 @@ import hashlib
 import html as html_mod
 import json
 import re
+from urllib.parse import parse_qs, urlparse
 
 from lxml import etree, html as lxml_html
 
@@ -25,6 +26,23 @@ DROP_TAGS = SKIP_TAGS | {
     "link", "meta", "base", "source", "track", "portal",
 }
 BAD_URL_PREFIX = ("javascript:", "vbscript:", "data:text/html")
+
+
+def _direct_image_url(url: str) -> str:
+    """Unwrap wechat2rss's image proxy to the original mmbiz URL.
+
+    The proxy is useful for the fetcher but tends to reject browser hotlinks,
+    which leaves every inline image (including GIF stickers) blank on the
+    public reading page.  The signed ``u=`` parameter is the original URL.
+    """
+    if not url or "wechat2rss.xlab.app" not in url:
+        return url
+    try:
+        q = parse_qs(urlparse(html_mod.unescape(url)).query)
+        direct = (q.get("u") or [""])[0]
+    except ValueError:
+        return url
+    return direct or url
 
 
 def sanitize_fragment(root: etree._Element) -> None:
@@ -45,7 +63,13 @@ def sanitize_fragment(root: etree._Element) -> None:
             value = (el.get(attr) or "").strip()
             if low.startswith("on") or low in {"srcdoc", "formaction"}:
                 del el.attrib[attr]
-            elif low in {"href", "src", "xlink:href", "poster", "action"} and value.lower().startswith(BAD_URL_PREFIX):
+                continue
+            if low in {"src", "data-src"}:
+                direct = _direct_image_url(value)
+                if direct != value:
+                    el.set(attr, direct)
+                    value = direct
+            if low in {"href", "src", "xlink:href", "poster", "action"} and value.lower().startswith(BAD_URL_PREFIX):
                 del el.attrib[attr]
             elif low == "style" and re.search(r"expression\s*\(|javascript:", value, re.I):
                 del el.attrib[attr]
