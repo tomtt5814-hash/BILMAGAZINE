@@ -387,26 +387,22 @@
   /* 手机电子书翻页：点击左右半屏，整页切换，不滚动 */
   .tb-block--flip{display:none}
   body.book-mode{overflow:hidden}
-  body.book-mode .vctl,
   body.book-mode .next-story{display:none!important}
   .flip-book{
     position:fixed;left:0;right:0;top:64px;bottom:0;z-index:80;
-    display:flex;flex-direction:column;background:var(--paper);
-    overscroll-behavior:none;
+    display:block;background:var(--paper);overscroll-behavior:none;
   }
   .flip-book[hidden]{display:none}
   .flip-book__stage{
-    flex:1;min-height:0;display:flex;align-items:stretch;justify-content:center;
-    padding:10px 10px 0;
+    height:100%;display:block;padding:0;
   }
   .flip-book__viewport{
-    position:relative;width:100%;max-width:720px;height:100%;overflow:hidden;
+    position:relative;width:100%;max-width:none;height:100%;overflow:hidden;
     padding:0;background:var(--paper);color:var(--ink);
-    border:1px solid var(--line);box-shadow:0 18px 50px rgba(0,0,0,.38);
-    cursor:pointer;touch-action:manipulation;
+    border:0;box-shadow:none;cursor:pointer;touch-action:manipulation;
   }
   .flip-book__inner{
-    position:absolute;inset:18px 18px 14px;overflow:hidden;
+    position:absolute;inset:14px 18px 96px;overflow:hidden;
   }
   .flip-book__flow{
     height:100%;column-fill:auto;column-gap:0;
@@ -435,16 +431,11 @@
   .flip-book__flow .story__kicker,
   .flip-book__flow .talk__hd,
   .flip-book__flow .talk li{break-inside:avoid;break-after:avoid}
-  .flip-book__bar{
-    flex:none;height:44px;display:flex;align-items:center;justify-content:space-between;
-    padding:0 16px;background:var(--paper);border-top:1px solid var(--line);
-    font:600 11px/1 var(--sans);color:var(--muted);
-  }
-  .flip-book__count{font-family:var(--mono);letter-spacing:.12em;color:var(--ink)}
-  .flip-book__hint{font-size:10px;letter-spacing:.06em;color:var(--muted)}
-  .flip-book__exit{
-    border:1px solid var(--line-strong);background:transparent;color:var(--ink);
-    padding:8px 12px;font:600 11px/1 var(--sans);cursor:pointer;
+  .flip-book__count{
+    position:absolute;right:16px;bottom:74px;z-index:2;
+    font:600 10px/1 var(--mono);letter-spacing:.12em;color:var(--muted);
+    padding:6px 9px;border:1px solid var(--line);background:var(--paper);
+    pointer-events:none;
   }
   @media (max-width:820px){
     .tb-block--flip{display:block}
@@ -731,11 +722,7 @@
       </div>
     </div>
   </div>
-  <div class="flip-book__bar">
-    <span class="flip-book__count" id="flip-count">1 / 1</span>
-    <span class="flip-book__hint">点击左右翻页</span>
-    <button type="button" class="flip-book__exit" id="flip-exit">退出翻页</button>
-  </div>
+  <span class="flip-book__count" id="flip-count">1 / 1</span>
 </div>
 
 <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="文章图片预览" aria-hidden="true">
@@ -974,7 +961,6 @@
     var viewport=document.getElementById('flip-viewport');
     var flow=document.getElementById('flip-flow');
     var count=document.getElementById('flip-count');
-    var exitBtn=document.getElementById('flip-exit');
     var sheet=document.getElementById('sheet');
     var modeBtns=[].slice.call(document.querySelectorAll('.tb-seg[data-mode]'));
     if(!book||!viewport||!flow||!count||!sheet) return;
@@ -1034,6 +1020,7 @@
       }else{
         flow.innerHTML='';
       }
+      try{localStorage.setItem('bilmag.readMode',on?'flip':'scroll');}catch(e){}
       modeBtns.forEach(function(b){
         var active=b.getAttribute('data-mode')===mode;
         b.classList.toggle('on',active);
@@ -1041,7 +1028,6 @@
       });
     }
     modeBtns.forEach(function(b){b.addEventListener('click',function(){setMode(b.getAttribute('data-mode'));});});
-    exitBtn.addEventListener('click',function(){setMode('scroll');});
     document.addEventListener('keydown',function(e){if(on&&e.key==='Escape')setMode('scroll');});
     viewport.addEventListener('click',function(e){
       if(e.target.closest&&e.target.closest('a,button,.w,.w-cet6,.w-basic,.w-adv,.wx-inline img,.story__fig img,.wx-emoji'))return;
@@ -1057,6 +1043,11 @@
       },180);
     });
     window.addEventListener('load',function(){if(on)build(true);});
+    try{
+      if(localStorage.getItem('bilmag.readMode')==='flip'&&window.innerWidth<=820){
+        requestAnimationFrame(function(){setMode('flip');});
+      }
+    }catch(e){}
   })();
 
   window.addEventListener('storage',function(e){
