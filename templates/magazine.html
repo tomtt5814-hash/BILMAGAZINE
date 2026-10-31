@@ -391,7 +391,9 @@
   html.book-mode .page,body.book-mode .page{display:none!important}
   body.book-mode .topbar,body.book-mode .scroll-line{display:none!important}
   body.book-mode .flip-book{top:0!important}
-  body.book-mode .next-story{display:none!important}
+  body.book-mode .next-story{
+    display:inline-flex!important;left:12px;right:auto;bottom:70px;z-index:93;
+  }
   .flip-book{
     position:fixed;left:0;right:0;top:64px;bottom:0;z-index:80;
     display:block;background:var(--paper);overscroll-behavior:none;
@@ -951,12 +953,25 @@
       var nextLockUntil=0;
       var nextTarget=0;
       var paintNext=function(){
+        if(document.body.classList.contains('book-mode')&&typeof window.__flipCurrentStory==='function'){
+          nextBtn.hidden=false;
+          nextTarget=window.__flipCurrentStory();
+          if(nextNum) nextNum.textContent=String(nextTarget+1);
+          nextBtn.setAttribute('aria-label','跳到第'+((nextTarget+1)%stories.length+1)+'篇');
+          return;
+        }
         if(Date.now()<nextLockUntil) return;
         nextTarget=currentStory();
         if(nextNum) nextNum.textContent=String(nextTarget+1);
         nextBtn.setAttribute('aria-label','跳到第'+((nextTarget+1)%stories.length+1)+'篇');
       };
       nextBtn.addEventListener('click',function(){
+        if(document.body.classList.contains('book-mode')&&typeof window.__flipNextStory==='function'){
+          var n=window.__flipNextStory();
+          if(nextNum) nextNum.textContent=String(n+1);
+          nextBtn.setAttribute('aria-label','跳到第'+((n+1)%stories.length+1)+'篇');
+          return;
+        }
         var base=Date.now()<nextLockUntil?nextTarget:currentStory();
         var next=(base+1)%stories.length;
         nextTarget=next;
@@ -997,6 +1012,7 @@
     function render(){
       count.textContent=(idx+1)+' / '+pages;
       flow.style.transform='translateX(-'+(idx*pw)+'px)';
+      if(typeof paintNext==='function')paintNext();
     }
     var buildSeq=0;
     function build(keep,reuse){
@@ -1041,6 +1057,22 @@
       var total=flow.scrollWidth||pw;
       pages=Math.max(1,Math.ceil((total-1)/pw));
       idx=keep?Math.min(old,pages-1):0;
+      var fstories=[].slice.call(flow.querySelectorAll('.story'));
+      var storyPages=fstories.map(function(s){
+        return Math.max(0,Math.min(pages-1,Math.round((s.offsetLeft||0)/pw)));
+      });
+      window.__flipCurrentStory=function(){
+        var cur=0;
+        storyPages.forEach(function(p,i){if(p<=idx)cur=i;});
+        return cur;
+      };
+      window.__flipNextStory=function(){
+        if(!storyPages.length)return 0;
+        var cur=window.__flipCurrentStory();
+        var next=(cur+1)%storyPages.length;
+        idx=storyPages[next];render();
+        return next;
+      };
       flow.offsetHeight;
       flow.style.transition='';
       render();
