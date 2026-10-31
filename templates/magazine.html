@@ -422,7 +422,11 @@
   .flip-book__flow .zh-line,
   .flip-book__flow .story__pull,
   .flip-book__flow .talk{max-width:none!important;margin-left:0!important;margin-right:0!important}
-  .flip-book__flow img{width:100%!important;max-width:100%!important;height:auto!important}
+  .flip-book__flow img:not(.wx-emoji){width:100%!important;max-width:100%!important;height:auto!important}
+  .flip-book__flow img.wx-emoji{
+    width:1.75em!important;max-width:1.75em!important;height:auto!important;
+    display:inline-block!important;vertical-align:-.28em;margin:0 .15em 0 0;
+  }
   .flip-book__flow p,
   .flip-book__flow li,
   .flip-book__flow h1,

@@ -1,7 +1,7 @@
 /* BILMAGAZINE · 渐进式 Web 应用 service worker
    策略：页面网络优先（离线回落到缓存），静态资源 stale-while-revalidate。
    控制台与写入接口永远走网络，不缓存。 */
-const VERSION = 'bilmag-v8';
+const VERSION = 'bilmag-v9';
 const SHELL = `${VERSION}-shell`;
 const PAGES = `${VERSION}-pages`;
 
