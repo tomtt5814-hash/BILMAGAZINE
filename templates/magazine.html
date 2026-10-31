@@ -992,6 +992,7 @@
       count.textContent=(idx+1)+' / '+pages;
       flow.style.transform='translateX(-'+(idx*pw)+'px)';
     }
+    var buildSeq=0;
     function build(keep,reuse){
       if(!on)return;
       var cw=flow.clientWidth,ch=flow.clientHeight;
@@ -1000,6 +1001,7 @@
         setTimeout(function(){if(on)build(keep,reuse);},120);
         return;
       }
+      var my=++buildSeq;
       var old=idx;
       if(!reuse){
         flow.style.transition='none';
@@ -1014,13 +1016,14 @@
           var left=waiting.length,settled=false;
           var settle=function(){
             if(settled)return;settled=true;
+            if(my!==buildSeq)return;
             if(on)build(keep,true);
           };
           waiting.forEach(function(img){
             img.addEventListener('load',function(){left--;if(left<=0)settle();},{once:true});
             img.addEventListener('error',function(){left--;if(left<=0)settle();},{once:true});
           });
-          setTimeout(settle,8000);
+          setTimeout(function(){if(!pages)settle();},8000);
           return;
         }
       }
@@ -1051,10 +1054,6 @@
         pages=0;count.textContent='…';
         if(typeof setToolbox==='function')setToolbox(false);
         requestAnimationFrame(function(){build(false);});
-        setTimeout(function(){if(on)build(true);},450);
-        if(document.fonts&&document.fonts.ready){
-          document.fonts.ready.then(function(){if(on)build(true);});
-        }
       }else{
         flow.innerHTML='';
       }
@@ -1090,15 +1089,16 @@
       var r=viewport.getBoundingClientRect();
       turn(e.clientX<r.left+r.width/2?-1:1);
     });
-    var rz;
+    var rz,flipW=window.innerWidth;
     window.addEventListener('resize',function(){
       if(!on)return;
+      if(Math.abs(window.innerWidth-flipW)<2)return;
+      flipW=window.innerWidth;
       clearTimeout(rz);rz=setTimeout(function(){
         if(window.innerWidth>820){setMode('scroll');return;}
         build(true);
       },180);
     });
-    window.addEventListener('load',function(){if(on)build(true);});
     try{
       var q='';try{q=new URLSearchParams(location.search).get('read')||'';}catch(e){}
       var saved=localStorage.getItem('bilmag.readMode')||'';
