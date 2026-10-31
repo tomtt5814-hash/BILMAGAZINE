@@ -992,13 +992,38 @@
       count.textContent=(idx+1)+' / '+pages;
       flow.style.transform='translateX(-'+(idx*pw)+'px)';
     }
-    function build(keep){
+    function build(keep,reuse){
       if(!on)return;
+      var cw=flow.clientWidth,ch=flow.clientHeight;
+      if(cw<200||ch<300){
+        count.textContent='…';
+        setTimeout(function(){if(on)build(keep,reuse);},120);
+        return;
+      }
       var old=idx;
-      flow.style.transition='none';
-      flow.style.transform='translateX(0)';
-      flow.innerHTML=sheet.innerHTML;
-      clean(flow);
+      if(!reuse){
+        flow.style.transition='none';
+        flow.style.transform='translateX(0)';
+        flow.innerHTML=sheet.innerHTML;
+        clean(flow);
+        var imgs=Array.prototype.slice.call(flow.querySelectorAll('img'));
+        var waiting=[];
+        imgs.forEach(function(img){img.loading='eager';if(!img.complete)waiting.push(img);});
+        if(waiting.length){
+          count.textContent='…';
+          var left=waiting.length,settled=false;
+          var settle=function(){
+            if(settled)return;settled=true;
+            if(on)build(keep,true);
+          };
+          waiting.forEach(function(img){
+            img.addEventListener('load',function(){left--;if(left<=0)settle();},{once:true});
+            img.addEventListener('error',function(){left--;if(left<=0)settle();},{once:true});
+          });
+          setTimeout(settle,8000);
+          return;
+        }
+      }
       var w=flow.clientWidth;
       if(w<200)w=viewport.clientWidth-36;
       flow.style.height='100%';
@@ -1010,15 +1035,6 @@
       flow.offsetHeight;
       flow.style.transition='';
       render();
-      var pending=0;
-      flow.querySelectorAll('img').forEach(function(img){
-        if(img.complete)return;
-        pending++;
-        img.addEventListener('load',function(){
-          pending--;
-          if(pending<=0){clearTimeout(imgTimer);imgTimer=setTimeout(function(){build(true);},180);}
-        },{once:true});
-      });
     }
     function turn(d){
       var n=Math.max(0,Math.min(pages-1,idx+d));
@@ -1032,6 +1048,7 @@
       document.body.classList.toggle('book-mode',on);
       if(on){
         window.__bookReady=true;
+        pages=0;count.textContent='…';
         if(typeof setToolbox==='function')setToolbox(false);
         requestAnimationFrame(function(){build(false);});
         setTimeout(function(){if(on)build(true);},450);
