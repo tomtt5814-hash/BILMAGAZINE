@@ -289,7 +289,13 @@ def _inline_emoji(el) -> list:
                 w = int(float(node.get("data-w") or node.get("width") or 0))
             except ValueError:
                 w = 0
-            if "emoji" in cls or "emotion" in cls or 0 < w <= 64:
+            title = (node.get("title") or "").lower()
+            if (
+                "emoji" in cls
+                or "emotion" in cls
+                or "cp-emoji" in title
+                or 0 < w <= 96
+            ):
                 out.append(copy.deepcopy(node))
         elif tag == "span" and ("emoji" in cls or "emotion" in cls) and node.find(".//img") is None:
             m = re.search(r"url\(([^)]+)\)", style)

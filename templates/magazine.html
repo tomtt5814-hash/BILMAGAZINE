@@ -261,8 +261,12 @@
   }
   .wx-inline .zh-orig{display:none}
   body.show-zh .wx-inline .zh-orig{
-    display:block;margin-top:7px;padding-left:10px;border-left:2px solid var(--line);
+    display:block;margin-top:7px;padding-left:10px;border-left:2px solid var(--line);position:relative;
     color:var(--muted);font-size:var(--fs-zh);line-height:1.75;
+  }
+  .wx-inline .zh-orig:has(> img.wx-emoji){padding-left:2rem}
+  .wx-inline .zh-orig > img.wx-emoji{
+    position:absolute;left:0;top:.18em;margin:0;width:1.45em;
   }
   .w{font-style:normal}
   .w-basic{font-weight:500;color:var(--ink)}
