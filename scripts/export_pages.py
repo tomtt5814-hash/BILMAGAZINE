@@ -84,6 +84,9 @@ def main() -> int:
     icons = ROOT / "static" / "icons"
     if icons.exists():
         shutil.copytree(icons, SITE / "static" / "icons", dirs_exist_ok=True)
+    media = ROOT / "static" / "media"
+    if media.exists():
+        shutil.copytree(media, SITE / "static" / "media", dirs_exist_ok=True)
 
     (SITE / "_headers").write_text(
         "/*\n"

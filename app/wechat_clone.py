@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import html as html_mod
 import json
@@ -267,6 +268,40 @@ def _strip_inline_font(el) -> None:
         el.attrib.pop("style", None)
 
 
+def _inline_emoji(el) -> list:
+    """Pull WeChat emoji stickers out of a text block.
+
+    WeChat renders its custom emoji either as a small ``<img>`` or as a
+    ``<span class="emoji">`` with a background image.  Both live inside the
+    paragraph, so the text replacement used to drop them together with the
+    original children.  Return copies that can be re-attached in front of the
+    translated paragraph.
+    """
+    out = []
+    for node in list(el.iter()):
+        if not isinstance(node.tag, str):
+            continue
+        tag = node.tag.lower()
+        cls = (node.get("class") or "").lower()
+        style = node.get("style") or ""
+        if tag == "img":
+            try:
+                w = int(float(node.get("data-w") or node.get("width") or 0))
+            except ValueError:
+                w = 0
+            if "emoji" in cls or "emotion" in cls or 0 < w <= 64:
+                out.append(copy.deepcopy(node))
+        elif tag == "span" and ("emoji" in cls or "emotion" in cls) and node.find(".//img") is None:
+            m = re.search(r"url\(([^)]+)\)", style)
+            if m:
+                img = etree.Element("img")
+                img.set("src", m.group(1).strip("'\" "))
+                img.set("class", "wx-emoji")
+                img.set("alt", "")
+                out.append(img)
+    return out
+
+
 def build_content(article: dict, ctx: dict[str, str] | None = None) -> str:
     """只产出正文 HTML（内联进杂志用），不含外壳与标题。
 
@@ -296,18 +331,55 @@ def build_content(article: dict, ctx: dict[str, str] | None = None) -> str:
     for el, zh, en in zip(blocks, texts, translated):
         if not en:
             continue
+        emoji = _inline_emoji(el)
         keep = [ch for ch in el if isinstance(ch.tag, str) and ch.tag.lower() in ("img", "br")]
+        emoji_srcs = {
+            n.get("src") or n.get("data-src")
+            for n in emoji
+            if n.tag.lower() == "img"
+        }
+        keep = [
+            ch for ch in keep
+            if not (
+                ch.tag.lower() == "img"
+                and (
+                    "emoji" in (ch.get("class") or "").lower()
+                    or (ch.get("src") or ch.get("data-src")) in emoji_srcs
+                )
+            )
+        ]
         for ch in list(el):
             if ch not in keep:
                 el.remove(ch)
         # 英文正文套上三层词汇标注（保留节点间的空白 tail，否则单词会粘在一起）
         frag = lxml_html.fragment_fromstring(vocab.annotate(en, ctx), create_parent="div")
-        el.text = frag.text
-        for ch in list(frag):
-            el.append(ch)
+        if emoji:
+            el.text = None
+            for node in emoji:
+                if node.tag.lower() == "img":
+                    node.set("class", "wx-emoji")
+                    node.set("alt", "")
+                el.append(node)
+            body = etree.SubElement(el, "span")
+            body.set("class", "wx-en")
+            body.text = frag.text
+            for ch in list(frag):
+                body.append(ch)
+        else:
+            el.text = frag.text
+            for ch in list(frag):
+                el.append(ch)
         span = etree.SubElement(el, "span")
         span.set("class", "zh-orig")
-        span.text = zh
+        if emoji:
+            span.text = None
+            for node in emoji:
+                span.append(copy.deepcopy(node))
+            ztext = etree.SubElement(span, "span")
+            ztext.set("class", "zh-text")
+            ztext.text = zh
+        else:
+            span.text = zh
 
     for img in root.iter("img"):
         img.set("referrerpolicy", "no-referrer")
