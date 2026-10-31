@@ -195,7 +195,10 @@
     border:1px solid var(--line);background:var(--card);
     filter:saturate(.86) contrast(1.02);
     transition:transform .6s var(--ease),filter .4s var(--ease);
-    cursor:zoom-in;
+    cursor:default;
+  }
+  @media (max-width:820px){
+    .story__fig img{cursor:zoom-in}
   }
   .story__fig:hover img{transform:scale(1.012);filter:saturate(1) contrast(1.02)}
   .story__fig figcaption{
@@ -225,7 +228,10 @@
   .wx-inline p:has(img:not(.wx-emoji)){text-align:center!important}
   .wx-inline img{
     max-width:100%;height:auto;display:block;margin:18px auto;
-    border:1px solid var(--line);background:var(--card);cursor:zoom-in;
+    border:1px solid var(--line);background:var(--card);cursor:default;
+  }
+  @media (max-width:820px){
+    .wx-inline img:not(.wx-emoji){cursor:zoom-in}
   }
   .lightbox{
     position:fixed;inset:0;z-index:200;display:grid;place-items:center;gap:0;
@@ -1210,6 +1216,7 @@
       if(lastFocus&&lastFocus.focus) lastFocus.focus();
     }
     document.addEventListener('click',function(e){
+      if(window.innerWidth>820) return;
       var img=e.target.closest?e.target.closest('.wx-inline img:not(.wx-emoji),.story__fig img'):null;
       if(!img||lb.contains(img)) return;
       e.preventDefault();
